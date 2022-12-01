@@ -16,8 +16,8 @@ day01_solve :: () {
 
     elves := day01_parse(file);
 
-    result := day01_part1(elves);
-    print("day01 part01 = %", result);
+    print("day01 part01 = %", day01_part1(elves));
+    print("day01 part02 = %", day01_part2(elves));
 }
 
 day01_test :: () {
@@ -26,6 +26,7 @@ day01_test :: () {
 
     elves := day01_parse(file);
     assert(day01_part1(elves) == 24000);
+    assert(day01_part2(elves) == 45000);
 }
 
 day01_parse :: (file: string) -> [..][..]u32 {
@@ -103,6 +104,40 @@ day01_part1 :: (elves: [..][..]u32) -> s64 {
     return max_weight;
 }
 
+day01_part2 :: (elves: [..][..]u32) -> s64 {
+    sums : [..]s64;
+    print("%\n", elves);
+
+    // iterate elves
+    for elf : elves {
+        // sum elf weight
+        elf_weight := 0;
+        for weight : elf {
+            elf_weight += weight;
+        }
+
+        // store elf weight
+        array_add(*sums, elf_weight);
+    }
+    print("%\n", sums);
+
+    // sort
+    compare :: (a: s64, b: s64) -> s64 {
+        delta := a - b;
+        if delta < 0 return  1;
+        if delta > 0 return -1;
+        return 0;
+    }
+
+    sorted_sums := quick_sort(sums, compare);
+    print("%\n", sorted_sums);
+
+    result := sorted_sums[0] + sorted_sums[1] + sorted_sums[2];
+    print("%\n", result);
+    return result;
+}
+
 #import "Basic";
 #import "File";
 #import "String";
+#import "Sort";
