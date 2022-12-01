@@ -7,7 +7,7 @@ main :: () {
 // --------------------------------------------------------
 day01 :: () {
     day01_solve();
-    //day01_test();
+    day01_test();
 }
 
 day01_solve :: () {
@@ -16,8 +16,8 @@ day01_solve :: () {
 
     elves := day01_parse(file);
 
-    print("day01 part01 = %", day01_part1(elves));
-    print("day01 part02 = %", day01_part2(elves));
+    print("day01 part01 = %\n", day01_part1(elves));
+    print("day01 part02 = %\n", day01_part2(elves));
 }
 
 day01_test :: () {
@@ -76,7 +76,6 @@ day01_parse :: (file: string) -> [..][..]u32 {
         if success {
             weight : u32 = << cast(*u32)parsed[0].value_pointer;
             array_add(cur_elf, weight);
-            //array_add(*result, value);
         }
 
         // Advance start past \r\n
@@ -106,7 +105,6 @@ day01_part1 :: (elves: [..][..]u32) -> s64 {
 
 day01_part2 :: (elves: [..][..]u32) -> s64 {
     sums : [..]s64;
-    print("%\n", elves);
 
     // iterate elves
     for elf : elves {
@@ -119,7 +117,6 @@ day01_part2 :: (elves: [..][..]u32) -> s64 {
         // store elf weight
         array_add(*sums, elf_weight);
     }
-    print("%\n", sums);
 
     // sort
     compare :: (a: s64, b: s64) -> s64 {
@@ -130,10 +127,8 @@ day01_part2 :: (elves: [..][..]u32) -> s64 {
     }
 
     sorted_sums := quick_sort(sums, compare);
-    print("%\n", sorted_sums);
 
     result := sorted_sums[0] + sorted_sums[1] + sorted_sums[2];
-    print("%\n", result);
     return result;
 }
 
