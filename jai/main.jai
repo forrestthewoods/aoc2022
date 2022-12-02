@@ -1,6 +1,42 @@
 main :: () {
-    day01();
+    //day01();
+    day02();
 }
+
+// --------------------------------------------------------
+// Utilities
+// --------------------------------------------------------
+next_line :: (s : *string) -> bool, string {
+    result : string;
+
+    // Empty string
+    if s.count <= 0 {
+        return false, result;
+    }
+
+    // line ending (windows)
+    eol : string = "\r\n";
+
+    // find next line ending
+    end := find_index_from_left(<<s, eol);
+    
+    // end of string
+    if end == -1 {
+        end = s.count;
+    }
+
+    // compute result
+    result = <<s;
+    result.count = end;
+
+    // advance string
+    increment := end + eol.count;
+    s.data += increment;
+    s.count -= increment;
+    
+    return true, result;
+}
+
 
 // --------------------------------------------------------
 // Day 01
@@ -131,6 +167,99 @@ day01_part2 :: (elves: [..][..]u32) -> s64 {
     result := sorted_sums[0] + sorted_sums[1] + sorted_sums[2];
     return result;
 }
+
+// --------------------------------------------------------
+// Day 02
+// --------------------------------------------------------
+day02 :: () {
+    //day02_test();
+    day02_solve();
+}
+
+day02_solve :: () {
+    input, success := read_entire_file("data/day02.txt");
+    assert(success);
+
+    moves := day02_parse(input);
+    print("day02 part1: %", day02_part1(moves));
+}
+
+day02_test :: () {
+    input, success := read_entire_file("data/day02_example.txt");
+    assert(success);
+
+    moves := day02_parse(input);
+    
+    assert(day02_part1(moves) == 15);
+}
+
+day02_parse :: (input: string) ->  [..]d2_round {
+    result : [..]d2_round;
+
+    success, line := next_line(*input);
+    while success {
+        assert(line.count == 3);
+
+        entry: d2_round;
+        entry.a = line[0];
+        entry.b = line[2];
+
+        array_add(*result, entry);
+
+        success, line = next_line(*input);
+    }
+
+    return result;
+}
+
+day02_part1 :: (rounds : [..]d2_round) -> s64 {
+    result : s64 = 0;
+
+    for round : rounds {
+        result += score_round(round);
+    }
+
+    return result;
+}
+
+score_round :: (r: d2_round) -> s64 {
+    result : s64 = 0;
+
+    // constants
+    rock : u8 = #char "A";
+    paper : u8 = #char "B";
+    scissors : u8 = #char "C";
+    offset :u8 = #char "X" - #char "A";
+
+    // get moves
+    a := r.a;
+    b := r.b - offset;
+
+    
+    // Points for player move
+    // rock = 1, paper = 2, scissors = 3
+    result += b - rock + 1; 
+
+    // 3 points for tie
+    if a == b {
+        result += 3;
+    }
+
+    // 6 points for win
+    if (b == paper && a == rock) 
+        || (b == scissors && a == paper) 
+        || (b == rock && a == scissors) 
+    {
+        result += 6;
+    }
+
+    return result;
+}
+
+d2_round :: struct {
+    a: u8;
+    b: u8;
+};
 
 #import "Basic";
 #import "File";
