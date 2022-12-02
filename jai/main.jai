@@ -42,8 +42,8 @@ next_line :: (s : *string) -> bool, string {
 // Day 01
 // --------------------------------------------------------
 day01 :: () {
-    day01_solve();
     day01_test();
+    day01_solve();
 }
 
 day01_solve :: () {
@@ -172,7 +172,7 @@ day01_part2 :: (elves: [..][..]u32) -> s64 {
 // Day 02
 // --------------------------------------------------------
 day02 :: () {
-    //day02_test();
+    day02_test();
     day02_solve();
 }
 
@@ -181,7 +181,8 @@ day02_solve :: () {
     assert(success);
 
     moves := day02_parse(input);
-    print("day02 part1: %", day02_part1(moves));
+    print("day02 part1: %\n", day02_part1(moves));
+    print("day02 part2: %\n", day02_part2(moves));
 }
 
 day02_test :: () {
@@ -191,6 +192,7 @@ day02_test :: () {
     moves := day02_parse(input);
     
     assert(day02_part1(moves) == 15);
+    //assert(day02_part2(moves) == 12);
 }
 
 day02_parse :: (input: string) ->  [..]d2_round {
@@ -201,8 +203,8 @@ day02_parse :: (input: string) ->  [..]d2_round {
         assert(line.count == 3);
 
         entry: d2_round;
-        entry.a = line[0];
-        entry.b = line[2];
+        entry.a = line[0] - #char "A";
+        entry.b = line[2] - #char "X";
 
         array_add(*result, entry);
 
@@ -222,19 +224,57 @@ day02_part1 :: (rounds : [..]d2_round) -> s64 {
     return result;
 }
 
+day02_part2 :: (rounds : [..]d2_round) -> s64 {
+    result : s64 = 0;
+
+    // constants
+    rock : u8 = 0;
+    paper : u8 = 1;
+    scissors : u8 = 2;
+
+    for round : rounds {
+        
+        // modify round
+        new_round := round;
+
+        if round.b == 0 {
+            // lose
+            map : [3]u8; 
+            map[0] = scissors;
+            map[1] = rock;
+            map[2] = paper;
+
+            new_round.b = map[round.a];
+        } else if round.b == 1 {
+            // tie
+            new_round.b = round.a;
+        } else {
+            // win
+            map : [3]u8; 
+            map[0] = paper;
+            map[1] = scissors;
+            map[2] = rock;
+
+            new_round.b = map[round.a];
+        }
+
+        result += score_round(new_round);
+    }
+
+    return result;
+}
+
 score_round :: (r: d2_round) -> s64 {
     result : s64 = 0;
 
     // constants
-    rock : u8 = #char "A";
-    paper : u8 = #char "B";
-    scissors : u8 = #char "C";
-    offset :u8 = #char "X" - #char "A";
+    rock : u8 = 0;
+    paper : u8 = 1;
+    scissors : u8 = 2;
 
     // get moves
     a := r.a;
-    b := r.b - offset;
-
+    b := r.b;
     
     // Points for player move
     // rock = 1, paper = 2, scissors = 3
