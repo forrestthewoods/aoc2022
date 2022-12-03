@@ -336,7 +336,6 @@ day03_part1 :: (input : string) -> u64 {
 
         left := slice(line, 0, mid);
         right := slice(line, mid, len - mid);
-        print("left: %  right: %\n", left, right);
 
         // find duplicate
         dupe : u8 = 0;
@@ -348,7 +347,6 @@ day03_part1 :: (input : string) -> u64 {
             char := left[idx];
             if find_index_from_left(right, char) != -1 {
                 dupe = char;
-                print("    dupe: %\n", dupe);
                 break;
             }
         }
@@ -357,23 +355,15 @@ day03_part1 :: (input : string) -> u64 {
         // assume dupe was found
         if dupe <= #char "Z" {
             value := dupe - #char "A" + 27;
-            print("    value: %\n", value);
-            assert(value >= 27 && value <= 52);
             result += dupe - #char "A" + 27;
         } else {
             value := dupe - #char "a" + 1;
-            print("    value: %\n", value);
-            assert(value >= 1 && value <= 26);
             result += dupe - #char "a" + 1;
         }
 
         success, line = next_line(*input);
     }
 
-    // 9077 too high
-
-
-    print("result: %\n", result);
     return result;
 }
 
