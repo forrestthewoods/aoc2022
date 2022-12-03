@@ -315,6 +315,7 @@ day03_test :: () {
     assert(success);
 
     assert(day03_part1(input) == 157);
+    assert(day03_part2(input) == 70);
 }
 
 day03_solve :: () {
@@ -322,6 +323,7 @@ day03_solve :: () {
     assert(success);
 
     print("day03 part1: %\n", day03_part1(input));
+    print("day03 part2: %\n", day03_part2(input));
 }
 
 day03_part1 :: (input : string) -> u64 {
@@ -367,7 +369,92 @@ day03_part1 :: (input : string) -> u64 {
     return result;
 }
 
+day03_part2 :: (input : string) -> u64 {
+    result : u64;
+
+    // get 3 lines
+    sa, a := next_line(*input);
+    sb, b := next_line(*input);
+    sc, c := next_line(*input);
+    while sa {
+        // helper to calculate bitmask for a single line
+        calculate_mask :: (inner_line: string) -> u64 {
+            mask: u64 = 0;
+
+            dummy: string = tprint("a");
+            
+            idx := 0;
+            while idx < inner_line.count {
+                defer idx += 1;
+
+                // get character
+                c := inner_line[idx];
+
+                // convert to mask-index
+                mask_index := 0;
+                if c <= #char "Z" {
+                    mask_index = c - #char "A" + 26;
+                } else {
+                    mask_index = c - #char "a";
+                }
+
+                dummy[0] = c;
+                //print("char [%] -> index [%]\n", dummy, mask_index);
+                mask |= cast(u64)(1 << mask_index);
+            }
+
+            return mask;
+        }
+
+        print("triple\n");
+        print("    %\n", a);
+        print("    %\n", b);
+        print("    %\n", c);
+        
+        // compute masks
+        mask_a := calculate_mask(a);
+        mask_b := calculate_mask(b);
+        mask_c := calculate_mask(c);
+
+        print("masks\n");
+        print("    %\n", mask_a);
+        print("    %\n", mask_b);
+        print("    %\n", mask_c);
+
+        // intersect masks
+        intersect := mask_a & mask_b & mask_c;
+        print("    intersect: %\n", intersect);
+
+        // extract bit
+        bit := bit_scan_forward(intersect);
+        print("    bit: %\n", bit);
+        value := cast(u64)bit;
+        print("    value: %\n", value);
+        result += value;
+
+        // get next 3 lines
+        sa, a = next_line(*input);
+        sb, b = next_line(*input);
+        sc, c = next_line(*input);
+    }
+
+    // v : u32 = 0;
+    // print("bit_scan_test: %\n", bit_scan_forward(v));
+    // v = 1;
+    // print("bit_scan_test: %\n", bit_scan_forward(v));
+    // v = 2;
+    // print("bit_scan_test: %\n", bit_scan_forward(v));
+    // v = 4;
+    // print("bit_scan_test: %\n", bit_scan_forward(v));
+    // v = 1 << 8;
+    // print("bit_scan_test: %\n", bit_scan_forward(v));
+
+    print("result: %\n", result);
+    return result;
+}
+
 #import "Basic";
 #import "File";
 #import "String";
 #import "Sort";
+#import "Bit_Operations";
