@@ -1,6 +1,7 @@
 main :: () {
     //day01();
-    day02();
+    //day02();
+    day03();
 }
 
 // --------------------------------------------------------
@@ -300,6 +301,81 @@ d2_round :: struct {
     a: u8;
     b: u8;
 };
+
+// --------------------------------------------------------
+// Day 03
+// --------------------------------------------------------
+day03 :: () {
+    day03_test();
+    day03_solve();
+}
+
+day03_test :: () {
+    input, success := read_entire_file("data/day03_example.txt");
+    assert(success);
+
+    assert(day03_part1(input) == 157);
+}
+
+day03_solve :: () {
+    input, success := read_entire_file("data/day03.txt");
+    assert(success);
+
+    print("day03 part1: %\n", day03_part1(input));
+}
+
+day03_part1 :: (input : string) -> u64 {
+    result : u64;
+
+    success, line := next_line(*input);
+    while success {
+        // split line
+        len := line.count;
+        assert(len % 2 == 0);
+        mid := len / 2;
+
+        left := slice(line, 0, mid);
+        right := slice(line, mid, len - mid);
+        print("left: %  right: %\n", left, right);
+
+        // find duplicate
+        dupe : u8 = 0;
+        
+        idx := 0;
+        while idx < left.count {
+            defer idx += 1;
+
+            char := left[idx];
+            if find_index_from_left(right, char) != -1 {
+                dupe = char;
+                print("    dupe: %\n", dupe);
+                break;
+            }
+        }
+        assert(dupe != 0);
+
+        // assume dupe was found
+        if dupe <= #char "Z" {
+            value := dupe - #char "A" + 27;
+            print("    value: %\n", value);
+            assert(value >= 27 && value <= 52);
+            result += dupe - #char "A" + 27;
+        } else {
+            value := dupe - #char "a" + 1;
+            print("    value: %\n", value);
+            assert(value >= 1 && value <= 26);
+            result += dupe - #char "a" + 1;
+        }
+
+        success, line = next_line(*input);
+    }
+
+    // 9077 too high
+
+
+    print("result: %\n", result);
+    return result;
+}
 
 #import "Basic";
 #import "File";
