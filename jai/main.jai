@@ -1,19 +1,16 @@
 main :: () {
-    //day01();
-    //day02();
+    day01();
+    day02();
     day03();
 }
 
 // --------------------------------------------------------
 // Utilities
 // --------------------------------------------------------
-next_line :: (s : *string) -> bool, string {
+next_line :: (s : *string) -> string {
+    assert(s.count > 0);
+    
     result : string;
-
-    // Empty string
-    if s.count <= 0 {
-        return false, result;
-    }
 
     // line ending (windows)
     eol : string = "\r\n";
@@ -35,7 +32,7 @@ next_line :: (s : *string) -> bool, string {
     s.data += increment;
     s.count -= increment;
     
-    return true, result;
+    return result;
 }
 
 
@@ -199,8 +196,8 @@ day02_test :: () {
 day02_parse :: (input: string) ->  [..]d2_round {
     result : [..]d2_round;
 
-    success, line := next_line(*input);
-    while success {
+    while input.count > 0 {
+        line := next_line(*input);
         assert(line.count == 3);
 
         entry: d2_round;
@@ -208,8 +205,6 @@ day02_parse :: (input: string) ->  [..]d2_round {
         entry.b = line[2] - #char "X";
 
         array_add(*result, entry);
-
-        success, line = next_line(*input);
     }
 
     return result;
@@ -329,8 +324,9 @@ day03_solve :: () {
 day03_part1 :: (input : string) -> u64 {
     result : u64;
 
-    success, line := next_line(*input);
-    while success {
+    while input.count > 0 {
+        line := next_line(*input);
+
         // split line
         len := line.count;
         assert(len % 2 == 0);
@@ -362,8 +358,6 @@ day03_part1 :: (input : string) -> u64 {
             value := dupe - #char "a" + 1;
             result += dupe - #char "a" + 1;
         }
-
-        success, line = next_line(*input);
     }
 
     return result;
@@ -374,9 +368,9 @@ day03_part2 :: (input : string) -> u64 {
 
     // get 3 lines
     while input.count > 0 {
-        sa, a := next_line(*input);
-        sb, b := next_line(*input);
-        sc, c := next_line(*input);
+       a := next_line(*input);
+       b := next_line(*input);
+       c := next_line(*input);
 
         // helper to calculate bitmask for a single line
         calculate_mask :: (line: string) -> u64 {
