@@ -379,28 +379,17 @@ day03_part2 :: (input : string) -> u64 {
         sc, c := next_line(*input);
 
         // helper to calculate bitmask for a single line
-        calculate_mask :: (inner_line: string) -> u64 {
+        calculate_mask :: (line: string) -> u64 {
             mask: u64 = 0;
 
-            dummy: string = tprint("a");
-            
-            idx := 0;
-            while idx < inner_line.count {
-                defer idx += 1;
-
-                // get character
-                c := inner_line[idx];
-
+            for 0..line.count-1 {
                 // convert to mask-index
-                mask_index := 0;
-                if c <= #char "Z" {
-                    mask_index = c - #char "A" + 26;
-                } else {
-                    mask_index = c - #char "a";
-                }
+                c := line[it];
+                mask_index :=  ifx c <= #char "Z" then
+                    c - #char "A" + 26
+                else
+                    c - #char "a";
 
-                dummy[0] = c;
-                //print("char [%] -> index [%]\n", dummy, mask_index);
                 mask |= cast(u64)(1 << mask_index);
             }
 
