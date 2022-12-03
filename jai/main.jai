@@ -53,8 +53,8 @@ day01_solve :: () {
 
     elves := day01_parse(file);
 
-    print("day01 part01 = %\n", day01_part1(elves));
-    print("day01 part02 = %\n", day01_part2(elves));
+    print("day01 part1: %\n", day01_part1(elves));
+    print("day01 part2: %\n", day01_part2(elves));
 }
 
 day01_test :: () {
@@ -373,10 +373,11 @@ day03_part2 :: (input : string) -> u64 {
     result : u64;
 
     // get 3 lines
-    sa, a := next_line(*input);
-    sb, b := next_line(*input);
-    sc, c := next_line(*input);
-    while sa {
+    while input.count > 0 {
+        sa, a := next_line(*input);
+        sb, b := next_line(*input);
+        sc, c := next_line(*input);
+
         // helper to calculate bitmask for a single line
         calculate_mask :: (inner_line: string) -> u64 {
             mask: u64 = 0;
@@ -418,11 +419,6 @@ day03_part2 :: (input : string) -> u64 {
         bit := bit_scan_forward(intersect);
         value := cast(u64)bit;
         result += value;
-
-        // get next 3 lines
-        sa, a = next_line(*input);
-        sb, b = next_line(*input);
-        sc, c = next_line(*input);
     }
 
     return result;
