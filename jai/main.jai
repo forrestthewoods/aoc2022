@@ -406,30 +406,17 @@ day03_part2 :: (input : string) -> u64 {
             return mask;
         }
 
-        print("triple\n");
-        print("    %\n", a);
-        print("    %\n", b);
-        print("    %\n", c);
-        
         // compute masks
         mask_a := calculate_mask(a);
         mask_b := calculate_mask(b);
         mask_c := calculate_mask(c);
 
-        print("masks\n");
-        print("    %\n", mask_a);
-        print("    %\n", mask_b);
-        print("    %\n", mask_c);
-
         // intersect masks
         intersect := mask_a & mask_b & mask_c;
-        print("    intersect: %\n", intersect);
 
         // extract bit
         bit := bit_scan_forward(intersect);
-        print("    bit: %\n", bit);
         value := cast(u64)bit;
-        print("    value: %\n", value);
         result += value;
 
         // get next 3 lines
@@ -438,18 +425,6 @@ day03_part2 :: (input : string) -> u64 {
         sc, c = next_line(*input);
     }
 
-    // v : u32 = 0;
-    // print("bit_scan_test: %\n", bit_scan_forward(v));
-    // v = 1;
-    // print("bit_scan_test: %\n", bit_scan_forward(v));
-    // v = 2;
-    // print("bit_scan_test: %\n", bit_scan_forward(v));
-    // v = 4;
-    // print("bit_scan_test: %\n", bit_scan_forward(v));
-    // v = 1 << 8;
-    // print("bit_scan_test: %\n", bit_scan_forward(v));
-
-    print("result: %\n", result);
     return result;
 }
 
