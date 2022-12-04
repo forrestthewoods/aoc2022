@@ -1,7 +1,8 @@
 main :: () {
-    day01();
-    day02();
-    day03();
+    // day01();
+    // day02();
+    // day03();
+    day04();
 }
 
 // --------------------------------------------------------
@@ -32,6 +33,18 @@ next_line :: (s : *string) -> string {
     s.data += increment;
     s.count -= increment;
     
+    return result;
+}
+
+map :: (array: [] $T, f: (T) -> $R) -> [] R {
+    result: [..] R;
+
+    // This map is hardcoded to return more temporary storage!
+    // We could specify this with an optional parameter if we wanted to.
+    result.allocator = temp;
+    
+    for array array_add(*result, f(it));
+
     return result;
 }
 
@@ -402,6 +415,59 @@ day03_part2 :: (input : string) -> u64 {
         bit := bit_scan_forward(intersect);
         value := cast(u64)bit;
         result += value;
+    }
+
+    return result;
+}
+
+// --------------------------------------------------------
+// Day 04
+// --------------------------------------------------------
+day04 :: () {
+    day04_test();
+    day04_solve();
+}
+
+day04_test :: () {
+    input, success := read_entire_file("data/day04_example.txt");
+    assert(success);
+
+    assert(day04_part1(input) == 2);
+    //assert(day03_part2(input) == 70);
+}
+
+day04_solve :: () {
+    input, success := read_entire_file("data/day04.txt");
+    assert(success);
+
+    print("day04 part1: %\n", day04_part1(input));
+    // print("day03 part2: %\n", day03_part2(input));
+}
+
+day04_part1 :: (input : string) -> u64 {
+    result : u64 = 0;
+
+    while input.count > 0 {
+        line := next_line(*input);
+        
+        elves := split(line,",");
+        assert(elves.count == 2);
+
+        get_nums :: (s : string) -> int, int {
+            range := split(s, "-");
+            assert(range.count == 2);
+            return string_to_int(range[0]), string_to_int(range[1]);
+        }
+
+        a,b := get_nums(elves[0]);
+        x,y := get_nums(elves[1]);
+
+        contains :: (a:int, b:int, x:int, y: int) -> bool {
+            return (a >= x && b <= y) || (x >= a && y <= b);
+        }
+        
+        print("%-%,%-% = % \n", a,b,x,y, contains(a,b,x,y));
+        if contains(a,b,x,y) result += 1;
     }
 
     return result;
