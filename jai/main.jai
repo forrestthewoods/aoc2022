@@ -431,21 +431,24 @@ day04 :: () {
 day04_test :: () {
     input, success := read_entire_file("data/day04_example.txt");
     assert(success);
-
-    assert(day04_part1(input) == 2);
-    //assert(day03_part2(input) == 70);
+    
+    part1, part2 := day04_bothparts(input);
+    assert(part1 == 2);
+    assert(part2 == 4);
 }
 
 day04_solve :: () {
     input, success := read_entire_file("data/day04.txt");
     assert(success);
 
-    print("day04 part1: %\n", day04_part1(input));
-    // print("day03 part2: %\n", day03_part2(input));
+    part1, part2 := day04_bothparts(input);
+    print("day04 part1: %\n", part1);
+    print("day04 part1: %\n", part2);
 }
 
-day04_part1 :: (input : string) -> u64 {
-    result : u64 = 0;
+day04_bothparts :: (input : string) -> u64, u64 {
+    part1 : u64 = 0;
+    part2 : u64 = 0;
 
     while input.count > 0 {
         line := next_line(*input);
@@ -465,12 +468,16 @@ day04_part1 :: (input : string) -> u64 {
         contains :: (a:int, b:int, x:int, y: int) -> bool {
             return (a >= x && b <= y) || (x >= a && y <= b);
         }
+
+        overlaps :: (a:int, b:int, x:int, y: int) -> bool {
+            return a <= y && x <= b;
+        }
         
-        print("%-%,%-% = % \n", a,b,x,y, contains(a,b,x,y));
-        if contains(a,b,x,y) result += 1;
+        if contains(a,b,x,y) part1 += 1;
+        if overlaps(a,b,x,y) part2 += 1;
     }
 
-    return result;
+    return part1, part2;
 }
 
 #import "Basic";
