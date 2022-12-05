@@ -2,7 +2,8 @@ main :: () {
     // day01();
     // day02();
     // day03();
-    day04();
+    // day04();
+    day05();
 }
 
 // --------------------------------------------------------
@@ -478,6 +479,68 @@ day04_bothparts :: (input : string) -> u64, u64 {
     }
 
     return part1, part2;
+}
+
+// --------------------------------------------------------
+// Day 05
+// --------------------------------------------------------
+day05 :: () {
+    day05_test();
+    //day05_actual();
+}
+
+day05_test :: () {
+    input, success := read_entire_file("data/day05_example.txt");
+    assert(success);
+
+    part1 := day05_solve(input);
+    //assert(part1 == "CMZ");
+}
+
+day05_actual :: () {
+    input, success := read_entire_file("data/day05.txt");
+    assert(success);
+
+    part1 := day05_solve(input);
+    print("day05 part1: %\n", part1);
+}
+
+day05_solve :: (input: string) -> string {
+    // divide input into "inital stacks" and "moves"
+    input_parts := split(input, "\r\n\r\n");
+    assert(input_parts.count == 2);
+
+    // split initial stacks into rows
+    rows := split(input_parts[0], "\r\n");
+    rows.count -= 1; // ignore last line which are just ids
+
+    stacks : [..][..]u8;
+
+    // parse stacks row by row
+    for row : rows {
+        idx := 0;
+        col := 0;
+        while idx < row.count {
+            defer col += 1;
+            defer idx += 4;
+
+            if row[idx] == #char "[" {
+                value := row[idx+1];
+                
+                // Ensure we have enough stacks
+                if stacks.count <= col {
+                    array_resize(*stacks, col + 1);
+                }
+
+                // Insert into stack
+                array_insert_at(*stacks[col], value, 0);
+            }       
+        }
+    }
+
+    print("%", stacks);
+
+    return "temp";
 }
 
 #import "Basic";
