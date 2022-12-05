@@ -486,7 +486,7 @@ day04_bothparts :: (input : string) -> u64, u64 {
 // --------------------------------------------------------
 day05 :: () {
     day05_test();
-    //day05_actual();
+    day05_actual();
 }
 
 day05_test :: () {
@@ -494,6 +494,7 @@ day05_test :: () {
     assert(success);
 
     part1 := day05_solve(input);
+    print("%", part1);
     //assert(part1 == "CMZ");
 }
 
@@ -538,9 +539,39 @@ day05_solve :: (input: string) -> string {
         }
     }
 
-    print("%", stacks);
+    // process each move
+    moves := split(input_parts[1], "\r\n");
+    for move : moves {
+        // format: move # from # to #
+        move_parts := split(move, " ");
+        assert(move_parts.count == 6);
+        count := string_to_int(move_parts[1]);
 
-    return "temp";
+        // get stacks (1-based index)
+        src := string_to_int(move_parts[3]) - 1;
+        dst := string_to_int(move_parts[5]) - 1;
+
+        src_stack := *stacks[src];
+        dst_stack := *stacks[dst];
+
+        // move from src to dst
+        for 0..count-1 {
+            array_add(dst_stack, pop(src_stack));
+        }
+    }
+
+    // extract top values
+    part1 : String_Builder;
+    init_string_builder(*part1);
+
+    for stack : stacks {
+        if stack.count > 0 {
+            append(*part1, peek(stack));
+        }
+    }
+
+    // return result
+    return builder_to_string(*part1);
 }
 
 #import "Basic";
