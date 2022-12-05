@@ -546,9 +546,6 @@ day05_solve :: (input: string, is_part1: bool) -> string {
         }
     }
 
-    // Copy stacks for part2
-    //config :Deep_Copy_Config;
-    //stacks2 : [..][..]u8 = << Deep_Copy(*stacks1, config);
 
     // process each move
     moves := split(input_parts[1], "\r\n");
@@ -583,14 +580,13 @@ day05_solve :: (input: string, is_part1: bool) -> string {
     }
 
     // extract top values for part1
-    answer : String_Builder;
-    init_string_builder(*answer);
+    answer : [..]u8;
     for stack : stacks {
         if stack.count > 0 {
-            append(*answer, peek(stack));
+            array_add(*answer, peek(stack));
         }
     }
-    return builder_to_string(*answer);
+    return to_string(answer);
 }
 
 #import "Basic";
