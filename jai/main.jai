@@ -493,20 +493,27 @@ day05_test :: () {
     input, success := read_entire_file("data/day05_example.txt");
     assert(success);
 
-    part1 := day05_solve(input);
-    print("%", part1);
-    //assert(part1 == "CMZ");
+    part1 := day05_solve(input, true);
+    assert(part1 == "CMZ");
+
+    part2 := day05_solve(input, false);
+    assert(part2 == "MCD");
 }
 
 day05_actual :: () {
     input, success := read_entire_file("data/day05.txt");
     assert(success);
 
-    part1 := day05_solve(input);
+    part1 := day05_solve(input, true);
+    assert(part1 == "ZRLJGSCTR");
     print("day05 part1: %\n", part1);
+
+    part2 := day05_solve(input, false);
+    assert(part2 == "PRTTGRFPB");
+    print("day05 part2: %\n", part2);
 }
 
-day05_solve :: (input: string) -> string {
+day05_solve :: (input: string, is_part1: bool) -> string {
     // divide input into "inital stacks" and "moves"
     input_parts := split(input, "\r\n\r\n");
     assert(input_parts.count == 2);
@@ -539,6 +546,10 @@ day05_solve :: (input: string) -> string {
         }
     }
 
+    // Copy stacks for part2
+    //config :Deep_Copy_Config;
+    //stacks2 : [..][..]u8 = << Deep_Copy(*stacks1, config);
+
     // process each move
     moves := split(input_parts[1], "\r\n");
     for move : moves {
@@ -550,31 +561,40 @@ day05_solve :: (input: string) -> string {
         // get stacks (1-based index)
         src := string_to_int(move_parts[3]) - 1;
         dst := string_to_int(move_parts[5]) - 1;
+        src_stack : *[..]u8 = *stacks[src];
+        dst_stack : *[..]u8 = *stacks[dst];
 
-        src_stack := *stacks[src];
-        dst_stack := *stacks[dst];
-
-        // move from src to dst
-        for 0..count-1 {
-            array_add(dst_stack, pop(src_stack));
+         if is_part1 {
+            // part1: move from src to dst one-by-one
+            for 0..count-1 {
+                array_add(dst_stack, pop(src_stack));
+            }
+        }
+        else {
+            // part2: move from src to dst in chunk
+            bottom := src_stack.count - count;
+            for bottom..src_stack.count - 1 {
+                idx := it;
+                value : u8 = src_stack.data[idx];
+                array_add(dst_stack, value);
+            }
+            src_stack.count -= count;
         }
     }
 
-    // extract top values
-    part1 : String_Builder;
-    init_string_builder(*part1);
-
+    // extract top values for part1
+    answer : String_Builder;
+    init_string_builder(*answer);
     for stack : stacks {
         if stack.count > 0 {
-            append(*part1, peek(stack));
+            append(*answer, peek(stack));
         }
     }
-
-    // return result
-    return builder_to_string(*part1);
+    return builder_to_string(*answer);
 }
 
 #import "Basic";
+#import "Deep_Copy";
 #import "File";
 #import "String";
 #import "Sort";
