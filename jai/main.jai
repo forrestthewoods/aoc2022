@@ -593,68 +593,47 @@ day05_solve :: (input: string, is_part1: bool) -> string {
 // --------------------------------------------------------
 // Day 06
 // --------------------------------------------------------
+day06_part1_len :: 4;
+day06_part2_len :: 14;
+
 day06 :: () {
     day06_test();
     day06_actual();
 }
 
 day06_test :: () {
-    assert(day06_solve("mjqjpqmgbljsphdztnvjfqwrcgsmlb") == 7);
-    assert(day06_solve("bvwbjplbgvbhsrlpgdmjqwftvncz") == 5);
-    assert(day06_solve("nppdvjthqldpwncqszvftbrmjlhg") == 6);
-    assert(day06_solve("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg") == 10);
-    assert(day06_solve("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw") == 11);
+    assert(day06_solve("mjqjpqmgbljsphdztnvjfqwrcgsmlb", day06_part1_len) == 7);
+    assert(day06_solve("bvwbjplbgvbhsrlpgdmjqwftvncz", day06_part1_len) == 5);
+    assert(day06_solve("nppdvjthqldpwncqszvftbrmjlhg", day06_part1_len) == 6);
+    assert(day06_solve("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", day06_part1_len) == 10);
+    assert(day06_solve("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", day06_part1_len) == 11);
+
+    assert(day06_solve("mjqjpqmgbljsphdztnvjfqwrcgsmlb", day06_part2_len) == 19);
+    assert(day06_solve("bvwbjplbgvbhsrlpgdmjqwftvncz", day06_part2_len) == 23);
+    assert(day06_solve("nppdvjthqldpwncqszvftbrmjlhg", day06_part2_len) == 23);
+    assert(day06_solve("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", day06_part2_len) == 29);
+    assert(day06_solve("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", day06_part2_len) == 26);
 }
 
 day06_actual :: () {
     input, success := read_entire_file("data/day06.txt");
     assert(success);
 
-    part1 := day06_solve(input);
+    part1 := day06_solve(input, day06_part1_len);
     assert(part1 == 1929);
     print("day06 part1: %\n", part1);
+
+    part2 := day06_solve(input, day06_part2_len);
+    assert(part2 == 3298);
+    print("day06 part2: %\n", part2);
 }
 
-day06_solve :: (input: string) -> s64 {
-    marker_len :: 5;
-
-    print("%\n", input);
-
-    // omg this indexing is so confusing
-    // i := 0;
-    // while i < input.count - marker_len {
-    //     defer i += 1;
-
-    //     has_dupe := false;
-    //     a := i;
-    //     while a < i + marker_len && !has_dupe {
-    //         defer a += 1;
-
-    //         b := a + 1;
-    //         while b < i + marker_len {
-    //             defer b += 1;
-
-    //             if input.data[a] == input.data[b] {
-    //                 print("starting from % the dupes are % and %\n", i, a, b);
-    //                 has_dupe = true;
-    //                 break;
-    //             }
-    //         }
-    //     }
-
-        
-    //     if !has_dupe {
-    //         print("no dupe starting from %. answer: %\n\n", i, i+5);
-    //         return i + marker_len - 1;
-    //     }
-    // }
-
-    for i: 0..input.count - 1 - 4 {
+day06_solve :: (input: string, marker_len: int) -> s64 {
+    for i: 0..input.count - 1 - marker_len {
         has_dupe := false;
-        for a: i..(i+4) {
-            for b: (a+1)..(i+4) {
+        for a: i..(i+marker_len-1) {
+            for b: (a+1)..(i+marker_len-1) {
                 if input.data[a] == input.data[b] {
-                    print("starting from % the dupes are % and %\n", i, a, b);
                     has_dupe = true;
                     break a;
                 }
@@ -662,8 +641,7 @@ day06_solve :: (input: string) -> s64 {
         }
 
         if !has_dupe {
-            print("no dupe starting from %. answer: %\n\n", i, i+4);
-            return i + 4;
+            return i + marker_len;
         }
     }
 
