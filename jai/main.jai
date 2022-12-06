@@ -3,7 +3,8 @@ main :: () {
     // day02();
     // day03();
     // day04();
-    day05();
+    // day05();
+    day06();
 }
 
 // --------------------------------------------------------
@@ -588,6 +589,88 @@ day05_solve :: (input: string, is_part1: bool) -> string {
     }
     return to_string(answer);
 }
+
+// --------------------------------------------------------
+// Day 06
+// --------------------------------------------------------
+day06 :: () {
+    day06_test();
+    day06_actual();
+}
+
+day06_test :: () {
+    assert(day06_solve("mjqjpqmgbljsphdztnvjfqwrcgsmlb") == 7);
+    assert(day06_solve("bvwbjplbgvbhsrlpgdmjqwftvncz") == 5);
+    assert(day06_solve("nppdvjthqldpwncqszvftbrmjlhg") == 6);
+    assert(day06_solve("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg") == 10);
+    assert(day06_solve("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw") == 11);
+}
+
+day06_actual :: () {
+    input, success := read_entire_file("data/day06.txt");
+    assert(success);
+
+    part1 := day06_solve(input);
+    assert(part1 == 1929);
+    print("day06 part1: %\n", part1);
+}
+
+day06_solve :: (input: string) -> s64 {
+    marker_len :: 5;
+
+    print("%\n", input);
+
+    // omg this indexing is so confusing
+    // i := 0;
+    // while i < input.count - marker_len {
+    //     defer i += 1;
+
+    //     has_dupe := false;
+    //     a := i;
+    //     while a < i + marker_len && !has_dupe {
+    //         defer a += 1;
+
+    //         b := a + 1;
+    //         while b < i + marker_len {
+    //             defer b += 1;
+
+    //             if input.data[a] == input.data[b] {
+    //                 print("starting from % the dupes are % and %\n", i, a, b);
+    //                 has_dupe = true;
+    //                 break;
+    //             }
+    //         }
+    //     }
+
+        
+    //     if !has_dupe {
+    //         print("no dupe starting from %. answer: %\n\n", i, i+5);
+    //         return i + marker_len - 1;
+    //     }
+    // }
+
+    for i: 0..input.count - 1 - 4 {
+        has_dupe := false;
+        for a: i..(i+4) {
+            for b: (a+1)..(i+4) {
+                if input.data[a] == input.data[b] {
+                    print("starting from % the dupes are % and %\n", i, a, b);
+                    has_dupe = true;
+                    break a;
+                }
+            }
+        }
+
+        if !has_dupe {
+            print("no dupe starting from %. answer: %\n\n", i, i+4);
+            return i + 4;
+        }
+    }
+
+    assert(false);
+    return 0;
+}
+
 
 #import "Basic";
 #import "Deep_Copy";
