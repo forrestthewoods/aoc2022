@@ -686,20 +686,25 @@ day07_test :: () {
     input, success := read_entire_file("data/day07_example.txt");
     assert(success);
 
-    part1 := day07_solve(input);
+    part1, part2 := day07_solve(input);
     assert(part1 == 95437);
+    assert(part2 == 24933642);
 }
 
 day07_actual :: () {
     input, success := read_entire_file("data/day07.txt");
     assert(success);
 
-    part1 := day07_solve(input);
+    part1, part2 := day07_solve(input);
+    assert(part1 == 1454188);
+    assert(part2 == 4183246);
+
     print("day07 part1: %\n", part1);
+    print("day07 part2: %\n", part2);
 }
 
 
-day07_solve :: (input: string) -> u64 {
+day07_solve :: (input: string) -> u64, u64 {
     // build directory structure
     lines := split(input, "\r\n");
     assert(lines[0] == "$ cd /");
@@ -784,9 +789,13 @@ day07_solve :: (input: string) -> u64 {
     day07_calc_recursive_sizes(*root);
     print("\n\n%\n\n", root);
 
-    result := day07_calc_part1(*root);
-    print("result: %\n", result);
-    return result;
+    part1 := day07_calc_part1(*root);
+    print("part1: %\n", part1);
+
+    part2 := day07_calc_part2(*root);
+    print("part2: %\n", part2);
+    
+    return part1, part2;
 }
 
 day07_calc_recursive_sizes :: (dir: *d7_directory) {
@@ -817,6 +826,33 @@ day07_calc_part1 :: (dir: *d7_directory) -> u64 {
     }
 
     return result;
+}
+
+day07_calc_part2 :: (dir: *d7_directory) -> u64 {
+    total_space :: 70000000;
+    space_needed :: 30000000;
+
+    space_used := dir.recursive_size;
+    
+    space_available := total_space - space_used;
+    space_to_free := space_needed - space_available;
+
+    smallest : u64 = total_space;
+    find_smallest :: (d: *d7_directory, smallest: *u64, minimum: u64) {
+        size : u64 = d.recursive_size;
+        s : u64 = <<smallest;
+        if size >= minimum && size < s {
+            <<smallest = size;
+        }
+
+        for *child : d.children {
+            find_smallest(child, smallest, minimum);
+        }
+    }
+
+    find_smallest(dir, *smallest, space_to_free);
+
+    return smallest;
 }
 
 #import "Basic";
