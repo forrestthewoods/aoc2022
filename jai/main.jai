@@ -4,7 +4,8 @@ main :: () {
     // day03();
     // day04();
     // day05();
-    day06();
+    // day06();
+    day07();
 }
 
 // --------------------------------------------------------
@@ -649,6 +650,174 @@ day06_solve :: (input: string, marker_len: int) -> s64 {
     return 0;
 }
 
+// --------------------------------------------------------
+// Day 07
+// --------------------------------------------------------
+d7_directory :: struct {
+    parent: *d7_directory;
+    name : string;
+    files: [..]d7_file;
+    children: [..]d7_directory;
+    recursive_size : u64;
+}
+
+d7_file :: struct {
+    size: u64;
+    name: string;
+}
+
+d7_find_child :: (dir: *d7_directory, child_name: string) -> *d7_directory {
+    for *child : dir.children {
+        if child.name == child_name {
+            return child;
+        }
+    }
+
+    return null;
+}
+
+
+day07 :: () {
+    day07_test();
+    day07_actual();
+}
+
+day07_test :: () {
+    input, success := read_entire_file("data/day07_example.txt");
+    assert(success);
+
+    part1 := day07_solve(input);
+    assert(part1 == 95437);
+}
+
+day07_actual :: () {
+    input, success := read_entire_file("data/day07.txt");
+    assert(success);
+
+    part1 := day07_solve(input);
+    print("day07 part1: %\n", part1);
+}
+
+
+day07_solve :: (input: string) -> u64 {
+    // build directory structure
+    lines := split(input, "\r\n");
+    assert(lines[0] == "$ cd /");
+
+    root : d7_directory;
+    root.name = "/";
+
+    cur : *d7_directory;
+    
+    line_idx := 0;
+    while line_idx < lines.count {
+        line := lines[line_idx];
+        line_idx += 1;
+
+        if line == "$ cd /" {
+            // move to root
+            cur = *root;
+        } else if line == "$ cd .." {
+            // move to parent
+            if cur.parent {
+                cur = cur.parent;
+            }
+        }
+        else if starts_with(line, "$ cd ") {
+            parts := split(line, " ");
+            assert(parts.count == 3);
+
+            target_dir := parts[2];
+
+            // Look for child
+            child := d7_find_child(cur, target_dir);
+            
+            if !child {
+                // haven't scanned this directory yet, create child
+                child_dir : d7_directory;
+                child_dir.parent = cur;
+                child_dir.name = target_dir;
+                array_add(*cur.children, child_dir);
+
+                cur = *cur.children.data[cur.children.count - 1];
+            } else {
+                cur = child;
+            }
+        }
+        else if line == "$ ls" {
+            // list directory
+            if cur.children.count != 0 || cur.files.count != 0 {
+                // don't populate directory twice
+                assert(false);
+            } else {
+
+                while line_idx < lines.count && !starts_with(lines[line_idx], "$") {
+                    line = lines[line_idx];
+                    line_idx += 1;
+                
+                    // split line
+                    parts := split(line, " ");
+                    assert(parts.count == 2);
+                    a := parts[0];
+                    b := parts[1];
+
+                    if a == "dir" {
+                        child_dir : d7_directory;
+                        child_dir.parent = cur;
+                        child_dir.name = b;
+                        array_add(*cur.children, child_dir);
+                    } else {
+                        // file
+                        file : d7_file;
+                        file.size = cast(u64)string_to_int(a);
+                        file.name = b;
+                        array_add(*cur.files, file);
+                    }
+                }
+            }
+        } else {
+            assert(false);
+        }
+    }
+
+    // pre-comptue recursive directory size
+    day07_calc_recursive_sizes(*root);
+    print("\n\n%\n\n", root);
+
+    result := day07_calc_part1(*root);
+    print("result: %\n", result);
+    return result;
+}
+
+day07_calc_recursive_sizes :: (dir: *d7_directory) {
+    for *child : dir.children {
+        day07_calc_recursive_sizes(child);
+        dir.recursive_size += child.recursive_size;
+    }
+
+    for *file : dir.files {
+        dir.recursive_size += file.size;
+    }
+
+    print("directory [%] % has recursive size %\n", *dir, dir.name, dir.recursive_size);
+}
+
+day07_calc_part1 :: (dir: *d7_directory) -> u64 {
+    result : u64 = 0;
+
+    print("considering: [%] % - %\n", *dir, dir.name, dir.recursive_size);
+
+    if dir.recursive_size <= 100000 {
+        print("less than 100000, adding: % - %\n", dir.name, dir.recursive_size);
+        result += dir.recursive_size;
+    }
+
+    for child : dir.children {
+        result += day07_calc_part1(*child);
+    }
+
+    return result;
+}
 
 #import "Basic";
 #import "Deep_Copy";
