@@ -787,14 +787,10 @@ day07_solve :: (input: string) -> u64, u64 {
 
     // pre-comptue recursive directory size
     day07_calc_recursive_sizes(*root);
-    print("\n\n%\n\n", root);
 
+    // compute puzzle answers
     part1 := day07_calc_part1(*root);
-    print("part1: %\n", part1);
-
     part2 := day07_calc_part2(*root);
-    print("part2: %\n", part2);
-    
     return part1, part2;
 }
 
@@ -807,17 +803,12 @@ day07_calc_recursive_sizes :: (dir: *d7_directory) {
     for *file : dir.files {
         dir.recursive_size += file.size;
     }
-
-    print("directory [%] % has recursive size %\n", *dir, dir.name, dir.recursive_size);
 }
 
 day07_calc_part1 :: (dir: *d7_directory) -> u64 {
     result : u64 = 0;
 
-    print("considering: [%] % - %\n", *dir, dir.name, dir.recursive_size);
-
     if dir.recursive_size <= 100000 {
-        print("less than 100000, adding: % - %\n", dir.name, dir.recursive_size);
         result += dir.recursive_size;
     }
 
