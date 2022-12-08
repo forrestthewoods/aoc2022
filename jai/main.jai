@@ -859,20 +859,23 @@ day08_test :: () {
     input, success := read_entire_file("data/day08_example.txt");
     assert(success);
 
-    part1 := day08_solve(input);
+    part1, part2 := day08_solve(input);
     assert(part1 == 21);
+    assert(part2 == 8);
 }
 
 day08_actual :: () {
     input, success := read_entire_file("data/day08.txt");
     assert(success);
 
-    part1 := day08_solve(input);
-
+    part1, part2 := day08_solve(input);
+    assert(part1 == 1546);
     print("day08 part1: %\n", part1);
+    assert(part2 == 519064);
+    print("day08 part2: %\n", part2);
 }
 
-day08_solve :: (input: string) -> int {
+day08_solve :: (input: string) -> int, int {
     trees := split(input, "\r\n");
     num_rows := trees.count;
     num_cols := trees[0].count;
@@ -883,7 +886,8 @@ day08_solve :: (input: string) -> int {
 
     // initialize to exterior
     part1 : int = num_rows*2 + (num_cols - 2) * 2;
-
+    
+    part2 := 0;
     
     // iterate interior
     for row: 1..num_rows - 2 {
@@ -937,16 +941,78 @@ day08_solve :: (input: string) -> int {
                 return false;
             }
 
+            calc_scenic_score :: (trees : []string, row: int, col: int) -> int {
+                score := 1;
+
+                num_rows := trees.count;
+                num_cols := trees[0].count;
+                tree_height := get_height(trees, row, col);
+
+                // look up
+                dir_trees := 0;
+                r := row - 1;
+                while r >= 0 {
+                    defer r -= 1;
+                    dir_trees += 1;
+
+                    if get_height(trees, r, col) >= tree_height {
+                        break;
+                    }
+                }
+                score *= dir_trees;
+
+                // look down
+                dir_trees = 0;
+                r = row + 1;
+                while r < num_rows  {
+                    defer r += 1;
+                    dir_trees += 1;
+
+                    if get_height(trees, r, col) >= tree_height {
+                        break;
+                    }
+                }
+                score *= dir_trees;
+                
+                // look left
+                dir_trees = 0;
+                c := col - 1;
+                while c >= 0 {
+                    defer c -= 1;
+                    dir_trees += 1;
+
+                    if get_height(trees, row, c) >= tree_height {
+                        break;
+                    }
+                }
+                score *= dir_trees;
+
+                // look right
+                dir_trees = 0;
+                c = col + 1;
+                while c < num_cols {
+                    defer c += 1;
+                    dir_trees += 1;
+
+                    if get_height(trees, row, c) >= tree_height {
+                        break;
+                    }
+                }
+                score *= dir_trees;
+                
+                return score;
+            }
+
             if is_visible(trees, row, col) {
                 part1 += 1;
             }
+
+            maybe_part2 := calc_scenic_score(trees, row, col);
+            part2 = max(maybe_part2, part2);
         }
     }
 
-
-    print("num visible: %\n", part1);
-
-    return part1;
+    return part1, part2;
 }
 
 
