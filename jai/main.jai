@@ -5,7 +5,8 @@ main :: () {
     // day04();
     // day05();
     // day06();
-    day07();
+    // day07();
+    day08();
 }
 
 // --------------------------------------------------------
@@ -845,6 +846,109 @@ day07_calc_part2 :: (dir: *d7_directory) -> u64 {
 
     return smallest;
 }
+
+// --------------------------------------------------------
+// Day 08
+// --------------------------------------------------------
+day08 :: () {
+    day08_test();
+    day08_actual();
+}
+
+day08_test :: () {
+    input, success := read_entire_file("data/day08_example.txt");
+    assert(success);
+
+    part1 := day08_solve(input);
+    assert(part1 == 21);
+}
+
+day08_actual :: () {
+    input, success := read_entire_file("data/day08.txt");
+    assert(success);
+
+    part1 := day08_solve(input);
+
+    print("day08 part1: %\n", part1);
+}
+
+day08_solve :: (input: string) -> int {
+    trees := split(input, "\r\n");
+    num_rows := trees.count;
+    num_cols := trees[0].count;
+
+    get_height :: (trees: []string, row: int, col: int) -> u8 {
+        return trees.data[row].data[col];
+    }
+
+    // initialize to exterior
+    part1 : int = num_rows*2 + (num_cols - 2) * 2;
+
+    
+    // iterate interior
+    for row: 1..num_rows - 2 {
+        for col : 1..num_cols - 2 {
+            // check if it's visible
+            is_visible :: (trees : []string, row: int, col: int) -> bool {
+                num_rows := trees.count;
+                num_cols := trees[0].count;
+                tree_height := get_height(trees, row, col);
+                
+                // check up
+                visible := true;
+                for r: 0.. row-1 {
+                    if get_height(trees, r, col) >= tree_height {
+                        visible = false;
+                        break;
+                    }
+                }
+                if visible return true;
+
+                // check down
+                visible = true;
+                for r: row+1..num_rows-1 {
+                    if get_height(trees, r, col) >= tree_height {
+                        visible = false;
+                        break;
+                    }
+                }
+                if visible return true;
+
+                // check left
+                visible = true;
+                for c: 0..col-1 {
+                    if get_height(trees, row, c) >= tree_height {
+                        visible = false;
+                        break;
+                    }
+                }
+                if visible return true;
+
+                // check right
+                visible = true;
+                for c: col+1..num_cols-1 {
+                    if get_height(trees, row, c) >= tree_height {
+                        visible = false;
+                        break;
+                    }
+                }
+                if visible return true;
+
+                return false;
+            }
+
+            if is_visible(trees, row, col) {
+                part1 += 1;
+            }
+        }
+    }
+
+
+    print("num visible: %\n", part1);
+
+    return part1;
+}
+
 
 #import "Basic";
 #import "Deep_Copy";
