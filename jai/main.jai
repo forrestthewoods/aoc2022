@@ -6,7 +6,8 @@ main :: () {
     // day05();
     // day06();
     // day07();
-    day08();
+    // day08();
+    day09();
 }
 
 // --------------------------------------------------------
@@ -52,6 +53,47 @@ map :: (array: [] $T, f: (T) -> $R) -> [] R {
     return result;
 }
 
+xprint :: (args: ..Any) -> string {
+    builder: String_Builder; defer free_buffers(*builder);
+    for args print_to_builder(*builder, tprint("%", it));
+    return builder_to_string(*builder);
+}
+
+Vec2 :: struct {
+    x : int;
+    y : int;
+}
+
+add :: (a: Vec2, b: Vec2) -> Vec2 {
+    result : Vec2;
+    result.x = a.x + b.x;
+    result.y = a.y + b.y;
+    return result;
+}
+
+subtract :: (a: Vec2, b: Vec2) -> Vec2 {
+    result : Vec2;
+    result.x = a.x - b.x;
+    result.y = a.y - b.y;
+    return result;
+}
+
+manhatten_length :: (v: Vec2) -> int {
+    return Math.abs(v.x) + Math.abs(v.y);
+}
+
+operator == :: (a: Vec2, b: Vec2) -> bool {
+    return a.x == b.x && a.y == b.y;
+}
+
+get_hash :: (v: Vec2) -> u32 {
+    Hash :: #import "Hash";
+    return hash_combine(Hash.get_hash(v.x), Hash.get_hash(v.y));
+}
+
+hash_combine :: (seed: u32, v: u32) -> u32 {
+    return seed ^ (v + 0x9e3779b9 + (seed << 6) + (seed >> 2));
+}
 
 // --------------------------------------------------------
 // Day 01
@@ -1015,10 +1057,116 @@ day08_solve :: (input: string) -> int, int {
     return part1, part2;
 }
 
+// --------------------------------------------------------
+// Day 09
+// --------------------------------------------------------
+day09 :: () {
+    day09_test();
+    day09_actual();
+}
+
+day09_test :: () {
+    input, success := read_entire_file("data/day09_example.txt");
+    assert(success);
+
+    part1 := day09_solve(input);
+    assert(part1 == 13);
+}
+
+day09_actual :: () {
+    input, success := read_entire_file("data/day09.txt");
+    assert(success);
+
+    part1 := day09_solve(input);
+    print("day09 part1: %\n", part1);
+}
+
+day09_solve :: (input: string) -> u64 {
+    head_pos : Vec2;
+    tail_pos := head_pos;
+
+    UP :: 0;
+    DOWN :: 1;
+    LEFT :: 2;
+    RIGHT :: 3;
+
+    // This is clunky
+    dirs : [4]Vec2;
+    dirs[UP].y = -1;
+    dirs[DOWN].y = 1;
+    dirs[LEFT].x = -1;
+    dirs[RIGHT].x = 1;
+
+    visited : Table(Vec2, int, get_hash);
+    init(*visited, 256);
+    table_set(*visited, tail_pos, 0);
+
+    part1_print :: (h: Vec2, t: Vec2, move: int) {
+        print("After move %\n", move);
+        print("  head: (%, %)\n", h.x, h.y);
+        print("  tail: (%, %)\n", t.x, t.y);
+    }
+
+    move := 0;
+    part1_print(head_pos, tail_pos, move);
+    for line : split(input, "\r\n") {
+        parts := split(line, " ");
+        assert(parts.count == 2);
+
+        dir := parts[0].data[0];
+        amount := string_to_int(parts[1]);
+        
+        // get velocity
+        vel : Vec2;
+        if dir == #char "U" vel = dirs[UP];
+        else if dir == #char "D" vel = dirs[DOWN];
+        else if dir == #char "L" vel = dirs[LEFT];
+        else if dir == #char "R" vel = dirs[RIGHT];
+
+        for 0..amount -1 {
+            // advance head
+            head_pos = add(head_pos, vel);
+
+            // maybe advance tail
+            diff := subtract(head_pos, tail_pos);
+            if Math.abs(diff.x) > 1 || Math.abs(diff.y) > 1 {
+                diff.x = clamp(diff.x, -1, 1);
+                diff.y = clamp(diff.y, -1, 1);
+                tail_pos = add(tail_pos, diff);
+
+                table_set(*visited, tail_pos, 0);
+                print("    TailPos: (%, %)\n", tail_pos.x, tail_pos.y);
+            }
+            
+            //assert(manhatten_length(subtract(head_pos, tail_pos)) <= 2);
+        }
+
+        move += 1;
+        part1_print(head_pos, tail_pos, move);
+    }    
+
+    part1 : u64= 0;
+    for visited {
+        part1 += 1;
+    }
+    
+    print("part1: %\n", part1);
+    return part1;
+}
+
 
 #import "Basic";
 #import "Deep_Copy";
 #import "File";
+
+Hash :: #import "Hash";
+#poke_name Hash get_hash;
+
+#import "Hash_Table";
+Hash_Table :: #import "Hash_Table";
+#poke_name Hash_Table operator==;
+
+Math :: #import "Math";
 #import "String";
 #import "Sort";
 #import "Bit_Operations";
