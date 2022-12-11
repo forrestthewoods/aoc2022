@@ -1090,7 +1090,7 @@ day09_actual :: () {
     print("day09 part1: %\n", part2);
 }
 
-day09_solve :: (input: string, rope_len: int) -> u64 {
+day09_solve :: (input: string, rope_len: int) -> int {
     rope : [..]Vec2;
     array_resize(*rope, rope_len);
 
@@ -1139,25 +1139,14 @@ day09_solve :: (input: string, rope_len: int) -> u64 {
                     diff.x = clamp(diff.x, -1, 1);
                     diff.y = clamp(diff.y, -1, 1);
                     rope[tail_idx] = add(rope[tail_idx], diff);
-
-                    //print("    TailPos: (%, %)\n", tail_pos.x, tail_pos.y);
                 }
             }
             
             table_set(*visited, rope[rope.count - 1], 0);
         }
-
-        move += 1;
-        //part1_print(head_pos, tail_pos, move);
     }    
 
-    part1 : u64= 0;
-    for visited {
-        part1 += 1;
-    }
-    
-    print("part1: %\n", part1);
-    return part1;
+    return visited.count;
 }
 
 
