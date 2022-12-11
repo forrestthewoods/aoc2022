@@ -1164,7 +1164,6 @@ day10_test :: () {
 
     part1, part2 := day10_solve(input);
     assert(part1 == 13140);
-    print("%\n", part2);
 }
 
 day10_actual :: () {
@@ -1231,7 +1230,6 @@ day10_solve :: (input: string) -> int, string {
             array_add(*part2, #char "\n");
             array_reset(*part2_row);
         }
-        print("cur cycle: %  pixel: %  register: %  row: %\n", cur_cycle, pixel, cpu.register, to_string(part2_row));
 
         if cur_cycle == 240 break;
 
@@ -1258,7 +1256,6 @@ day10_solve :: (input: string) -> int, string {
         cpu.next_cycle += 1;
     }
 
-    print("day10 part1: %\n", part1);
     return part1, to_string(part2);
 }
 
