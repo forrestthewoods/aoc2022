@@ -1162,19 +1162,22 @@ day10_test :: () {
     input, success := read_entire_file("data/day10_example2.txt");
     assert(success);
 
-    assert(day10_solve(input) == 13140);
+    part1, part2 := day10_solve(input);
+    assert(part1 == 13140);
 }
 
 day10_actual :: () {
     input, success := read_entire_file("data/day10.txt");
     assert(success);
 
-    part1 := day10_solve(input);
+    part1, part2 := day10_solve(input);
     print("day10 part1: %\n", part1);
+    print("day10 part2: \n%\n", part2);
 }
 
-day10_solve :: (input: string) -> int {
+day10_solve :: (input: string) -> int, string {
     part1 : int = 0;
+    part2 : [..]u8;
 
     // Breakup input
     instructions := split(input, "\r\n");
@@ -1185,7 +1188,7 @@ day10_solve :: (input: string) -> int {
     // Run until last cycle
     instruction_ptr : *string = *instructions[0];
 
-    while cpu.next_cycle <= 220 {
+    while cpu.next_cycle <= 240 {
         cur_cycle := cpu.next_cycle;
 
         if cpu.pipeline.cycles_left < 0 {
@@ -1205,13 +1208,20 @@ day10_solve :: (input: string) -> int {
             }
         }
 
-        // Process current register value
-        // Compute answer
+        // Process  part1
         if (cur_cycle - 20) % 40 == 0 {
             part1 += cur_cycle * cpu.register;
             print("cur cycle: %  register: %  sum: %\n", cur_cycle, cpu.register, part1);
         }
-        if cur_cycle == 220 break;
+
+        // process part2
+        lit : u8 :  #char "#";
+        unlit : u8 : #char " ";
+        byte : u8 = ifx (cur_cycle % 40) == cpu.register then lit else unlit;
+        array_add(*part2, byte);
+        if cur_cycle % 40 == 0 array_add(*part2, #char "\n");
+
+        if cur_cycle == 240 break;
 
         // Process end of cycle instruction operation
         if cpu.pipeline.cycles_left > 0 {
@@ -1237,7 +1247,7 @@ day10_solve :: (input: string) -> int {
     }
 
     print("day10 part1: %\n", part1);
-    return part1;
+    return part1, to_string(part2);
 }
 
 d10_cpu :: struct {
