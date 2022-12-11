@@ -1069,21 +1069,30 @@ day09_test :: () {
     input, success := read_entire_file("data/day09_example.txt");
     assert(success);
 
-    part1 := day09_solve(input);
-    assert(part1 == 13);
+    assert(day09_solve(input, 2) == 13);
+    assert(day09_solve(input, 10) == 1);
+
+    input, success = read_entire_file("data/day09_example2.txt");
+    assert(success);
+    assert(day09_solve(input, 10) == 36);
 }
 
 day09_actual :: () {
     input, success := read_entire_file("data/day09.txt");
     assert(success);
 
-    part1 := day09_solve(input);
+    part1 := day09_solve(input, 2);
+    assert(part1 == 6197);
     print("day09 part1: %\n", part1);
+
+    part2 := day09_solve(input, 10);
+    assert(part2 == 2562);
+    print("day09 part1: %\n", part2);
 }
 
-day09_solve :: (input: string) -> u64 {
-    head_pos : Vec2;
-    tail_pos := head_pos;
+day09_solve :: (input: string, rope_len: int) -> u64 {
+    rope : [..]Vec2;
+    array_resize(*rope, rope_len);
 
     UP :: 0;
     DOWN :: 1;
@@ -1097,18 +1106,12 @@ day09_solve :: (input: string) -> u64 {
     dirs[LEFT].x = -1;
     dirs[RIGHT].x = 1;
 
+    // Initialize HashTable (it's a set) for tracking visited positions
     visited : Table(Vec2, int, get_hash);
     init(*visited, 256);
-    table_set(*visited, tail_pos, 0);
-
-    part1_print :: (h: Vec2, t: Vec2, move: int) {
-        print("After move %\n", move);
-        print("  head: (%, %)\n", h.x, h.y);
-        print("  tail: (%, %)\n", t.x, t.y);
-    }
+    table_set(*visited, Vec2.{}, 0);
 
     move := 0;
-    part1_print(head_pos, tail_pos, move);
     for line : split(input, "\r\n") {
         parts := split(line, " ");
         assert(parts.count == 2);
@@ -1125,24 +1128,27 @@ day09_solve :: (input: string) -> u64 {
 
         for 0..amount -1 {
             // advance head
-            head_pos = add(head_pos, vel);
+            rope[0] = add(rope[0], vel);
 
-            // maybe advance tail
-            diff := subtract(head_pos, tail_pos);
-            if Math.abs(diff.x) > 1 || Math.abs(diff.y) > 1 {
-                diff.x = clamp(diff.x, -1, 1);
-                diff.y = clamp(diff.y, -1, 1);
-                tail_pos = add(tail_pos, diff);
+            // wag the tail
+            for head_idx: 0..rope.count - 2 {
+                tail_idx := head_idx + 1;
 
-                table_set(*visited, tail_pos, 0);
-                print("    TailPos: (%, %)\n", tail_pos.x, tail_pos.y);
+                diff := subtract(rope[head_idx], rope[tail_idx]);
+                if Math.abs(diff.x) > 1 || Math.abs(diff.y) > 1 {
+                    diff.x = clamp(diff.x, -1, 1);
+                    diff.y = clamp(diff.y, -1, 1);
+                    rope[tail_idx] = add(rope[tail_idx], diff);
+
+                    //print("    TailPos: (%, %)\n", tail_pos.x, tail_pos.y);
+                }
             }
             
-            //assert(manhatten_length(subtract(head_pos, tail_pos)) <= 2);
+            table_set(*visited, rope[rope.count - 1], 0);
         }
 
         move += 1;
-        part1_print(head_pos, tail_pos, move);
+        //part1_print(head_pos, tail_pos, move);
     }    
 
     part1 : u64= 0;
