@@ -1155,14 +1155,22 @@ day09_solve :: (input: string, rope_len: int) -> int {
 // --------------------------------------------------------
 day10 :: () {
     day10_test();
-    //day10_actual();
+    day10_actual();
 }
 
 day10_test :: () {
     input, success := read_entire_file("data/day10_example2.txt");
     assert(success);
 
-    day10_solve(input);
+    assert(day10_solve(input) == 13140);
+}
+
+day10_actual :: () {
+    input, success := read_entire_file("data/day10.txt");
+    assert(success);
+
+    part1 := day10_solve(input);
+    print("day10 part1: %\n", part1);
 }
 
 day10_solve :: (input: string) -> int {
@@ -1175,49 +1183,54 @@ day10_solve :: (input: string) -> int {
     cpu : d10_cpu;
 
     // Run until last cycle
-    next_inst := 0;
+    instruction_ptr : *string = *instructions[0];
+
     while cpu.next_cycle <= 220 {
         cur_cycle := cpu.next_cycle;
 
-        inst_str := instructions[cur_cycle];
+        if cpu.pipeline.cycles_left < 0 {
+            // start next instruction
+            if starts_with(<<instruction_ptr, "noop") {
+                // go to next instruction
+                instruction_ptr += 1;
+            } else if starts_with(<<instruction_ptr, "addx") {
+                parts := split(<<instruction_ptr, " ");
+                assert(parts.count == 2);
 
-        // Add commands
-        if starts_with(inst_str, "noop") {
-            // do nothing
-        } else if starts_with(inst_str, "addx") {
-            parts := split(inst_str, " ");
-            assert(parts.count == 2);
-
-            new_instruction : d10_instruction;
-            new_instruction.type = parts[0];
-            new_instruction.value = string_to_int(parts[1]);
-            new_instruction.cycles_left = 2;
-        } else {
-            assert(false);
-        }
-
-        // Pump pipeline
-        pipeline_idx := 0;
-        while pipeline_idx < cpu.pipeline.count {
-            inst := cpu.pipeline[pipeline_idx];
-            inst.cycles_left -= 1;
-
-            if inst.cycles_left == 0 {
-                cpu.register += inst.value;
-                array_ordered_remove_by_index(*cpu.pipeline, pipeline_idx);
+                cpu.pipeline.type = parts[0];
+                cpu.pipeline.value = string_to_int(parts[1]);
+                cpu.pipeline.cycles_left = 2;
             } else {
-                pipeline_idx += 1;
+                assert(false);
             }
         }
 
+        // Process current register value
         // Compute answer
         if (cur_cycle - 20) % 40 == 0 {
             part1 += cur_cycle * cpu.register;
+            print("cur cycle: %  register: %  sum: %\n", cur_cycle, cpu.register, part1);
         }
+        if cur_cycle == 220 break;
 
-        if cur_cycle == 220 {
-            break;
-        }
+        // Process end of cycle instruction operation
+        if cpu.pipeline.cycles_left > 0 {
+            // decrement cycle counter
+            cpu.pipeline.cycles_left -= 1;
+            
+            if cpu.pipeline.cycles_left == 0 {
+                // finish instruction
+                assert(cpu.pipeline.type == "addx");
+                cpu.pipeline.cycles_left = -1;
+
+                // execute instruction
+                cpu.register += cpu.pipeline.value;
+
+                // increment instruction ptr
+                instruction_ptr += 1;
+            }
+        } 
+ 
 
         // Increment cycle
         cpu.next_cycle += 1;
@@ -1228,15 +1241,15 @@ day10_solve :: (input: string) -> int {
 }
 
 d10_cpu :: struct {
-    next_cycle : int;
+    next_cycle : int = 1;
     register : int = 1;
-    pipeline : [..]d10_instruction;
+    pipeline: d10_instruction;
 }
 
 d10_instruction :: struct {
     type: string;
     value: int;
-    cycles_left : int;
+    cycles_left : int = -1;
 }
 
 
