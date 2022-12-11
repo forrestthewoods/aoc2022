@@ -7,7 +7,8 @@ main :: () {
     // day06();
     // day07();
     // day08();
-    day09();
+    // day09();
+    day10();
 }
 
 // --------------------------------------------------------
@@ -1147,6 +1148,94 @@ day09_solve :: (input: string, rope_len: int) -> int {
     }    
 
     return visited.count;
+}
+
+// --------------------------------------------------------
+// Day 10
+// --------------------------------------------------------
+day10 :: () {
+    day10_test();
+    //day10_actual();
+}
+
+day10_test :: () {
+    input, success := read_entire_file("data/day10_example1.txt");
+    assert(success);
+
+    day10_solve(input);
+}
+
+day10_solve :: (input: string) -> int {
+    part1 : int = 0;
+
+    // Breakup input
+    instructions := split(input, "\r\n");
+
+    // Create CPU
+    cpu : d10_cpu;
+
+    // Run until last cycle
+    while cpu.next_cycle <= 220 {
+        cur_cycle := cpu.next_cycle;
+
+        inst_str := instructions[cur_cycle];
+
+        // Add commands
+        if starts_with(inst_str, "noop") {
+            // do nothing
+        } else if starts_with(inst_str, "addx") {
+            parts := split(inst_str, " ");
+            assert(parts.count == 2);
+
+            new_instruction : d10_instruction;
+            new_instruction.type = parts[0];
+            new_instruction.value = string_to_int(parts[1]);
+            new_instruction.cycles_left = 2;
+        } else {
+            assert(false);
+        }
+
+        // Pump pipeline
+        pipeline_idx := 0;
+        while pipeline_idx < cpu.pipeline.count {
+            inst := cpu.pipeline[pipeline_idx];
+            inst.cycles_left -= 1;
+
+            if inst.cycles_left == 0 {
+                cpu.register += inst.value;
+                array_ordered_remove_by_index(*cpu.pipeline, pipeline_idx);
+            } else {
+                pipeline_idx += 1;
+            }
+        }
+
+        // Compute answer
+        if (cur_cycle - 20) % 40 == 0 {
+            part1 += cur_cycle * cpu.register;
+        }
+
+        if cur_cycle == 220 {
+            break;
+        }
+
+        // Increment cycle
+        cpu.next_cycle += 1;
+    }
+
+    print("day10 part1: %\n", part1);
+    return part1;
+}
+
+d10_cpu :: struct {
+    next_cycle : int;
+    register : int;
+    pipeline : [..]d10_instruction;
+}
+
+d10_instruction :: struct {
+    type: string;
+    value: int;
+    cycles_left : int;
 }
 
 
