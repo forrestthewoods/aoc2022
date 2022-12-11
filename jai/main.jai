@@ -1159,7 +1159,7 @@ day10 :: () {
 }
 
 day10_test :: () {
-    input, success := read_entire_file("data/day10_example1.txt");
+    input, success := read_entire_file("data/day10_example2.txt");
     assert(success);
 
     day10_solve(input);
@@ -1175,6 +1175,7 @@ day10_solve :: (input: string) -> int {
     cpu : d10_cpu;
 
     // Run until last cycle
+    next_inst := 0;
     while cpu.next_cycle <= 220 {
         cur_cycle := cpu.next_cycle;
 
@@ -1228,7 +1229,7 @@ day10_solve :: (input: string) -> int {
 
 d10_cpu :: struct {
     next_cycle : int;
-    register : int;
+    register : int = 1;
     pipeline : [..]d10_instruction;
 }
 
