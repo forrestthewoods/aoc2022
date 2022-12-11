@@ -1179,6 +1179,7 @@ day10_actual :: () {
 day10_solve :: (input: string) -> int, string {
     part1 : int = 0;
     part2 : [..]u8;
+    part2_row : [..]u8;
 
     // Breakup input
     instructions := split(input, "\r\n");
@@ -1212,15 +1213,25 @@ day10_solve :: (input: string) -> int, string {
         // Process  part1
         if (cur_cycle - 20) % 40 == 0 {
             part1 += cur_cycle * cpu.register;
-            print("cur cycle: %  register: %  sum: %\n", cur_cycle, cpu.register, part1);
         }
 
         // process part2
         lit : u8 :  #char "#";
         unlit : u8 : #char " ";
-        byte : u8 = ifx (cur_cycle % 40) == cpu.register then lit else unlit;
+        
+        pixel : int = ((cur_cycle - 1) % 40);
+        cursor : int = cpu.register;
+        byte : u8 = unlit;
+        if Math.abs(pixel - cursor) <= 1 {
+            byte = lit;
+        }
         array_add(*part2, byte);
-        if cur_cycle % 40 == 0 array_add(*part2, #char "\n");
+        array_add(*part2_row, byte);
+        if cur_cycle % 40 == 0 {
+            array_add(*part2, #char "\n");
+            array_reset(*part2_row);
+        }
+        print("cur cycle: %  pixel: %  register: %  row: %\n", cur_cycle, pixel, cpu.register, to_string(part2_row));
 
         if cur_cycle == 240 break;
 
