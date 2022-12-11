@@ -1164,6 +1164,7 @@ day10_test :: () {
 
     part1, part2 := day10_solve(input);
     assert(part1 == 13140);
+    print("%\n", part2);
 }
 
 day10_actual :: () {
