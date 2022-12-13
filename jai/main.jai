@@ -1293,21 +1293,24 @@ day11_test :: () {
     input, success := read_entire_file("data/day11_example.txt");
     assert(success);
 
-    part1 := day11_solve(input);
-    assert(part1 == 10605);
+    assert(day11_solve(input, false) == 10605);
+    assert(day11_solve(input, true) == 2713310158);
 }
 
 day11_actual :: () {
     input, success := read_entire_file("data/day11.txt");
     assert(success);
 
-    part1 := day11_solve(input);
+    part1 := day11_solve(input, false);
     assert(part1 == 61005);
     print("day11 part1: %\n", part1);
-    //print("day11 part2: \n%\n", part2);
+
+    part2 := day11_solve(input, true);
+    assert(part2 == 20567144694);
+    print("day11 part2: %\n", part2);
 }
 
-day11_solve :: (input: string) -> int {
+day11_solve :: (input: string, part2: bool) -> int {
     monkey_strings := split(input, "\r\n\r\n");   
     assert(monkey_strings.count > 1);
 
@@ -1350,13 +1353,19 @@ day11_solve :: (input: string) -> int {
         array_add(*monkies, new_monkey);
     }
 
+    num_rounds := ifx part2 then 9999 else 19;
+    
+    modulo_product := 1;
+    for monkies modulo_product *= it.test_value;
+
     // run rounds
-    for 0..19 {
+    for 0..num_rounds {
         // update monkey
         for *monkey : monkies {
             // process each item
             for item : monkey.items {
                 // apply operation
+                initial_value := item;
                 if monkey.op_type == d11_op.add {
                     item += monkey.op_value;
                 } else if monkey.op_type == d11_op.multiply {
@@ -1364,9 +1373,14 @@ day11_solve :: (input: string) -> int {
                 } else if monkey.op_type == d11_op.square {
                     item *= item;
                 } else { assert(false); }
+                assert(item >= 0);
 
-                // decrease worry
-                item /= 3;
+                // decrease worry (part1 only)
+                if !part2 {
+                    item /= 3;
+                } else {
+                    item = item % modulo_product;
+                }
 
                 // update counter
                 monkey.items_inspected += 1;
@@ -1395,14 +1409,15 @@ day11_solve :: (input: string) -> int {
     for *monkey : monkies array_add(*monkey_ptrs, monkey);
     sorted_monkies := quick_sort(monkey_ptrs, compare);
 
-    part1 := sorted_monkies[0].items_inspected * sorted_monkies[1].items_inspected;
-    return part1;
+    // calc answer
+    answer := sorted_monkies[0].items_inspected * sorted_monkies[1].items_inspected;
+    return answer;
 }
 
 d11_op :: enum { add; multiply; square; };
 
 d11_monkey :: struct {
-    items : [..]int;
+    items : [..]s64;
     op_type : d11_op;
     op_value : int;
     test_value: int;
