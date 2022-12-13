@@ -8,7 +8,8 @@ main :: () {
     // day07();
     // day08();
     // day09();
-    day10();
+    // day10();
+    day11();
 }
 
 // --------------------------------------------------------
@@ -94,6 +95,15 @@ get_hash :: (v: Vec2) -> u32 {
 
 hash_combine :: (seed: u32, v: u32) -> u32 {
     return seed ^ (v + 0x9e3779b9 + (seed << 6) + (seed >> 2));
+}
+
+slice :: (s: string, start: s64) -> string {
+    assert(start >= 0 && start < s.count);
+    
+    result := s;
+    result.data += start;
+    result.count -= start;
+    return result;
 }
 
 // --------------------------------------------------------
@@ -1271,6 +1281,135 @@ d10_instruction :: struct {
     cycles_left : int = -1;
 }
 
+// --------------------------------------------------------
+// Day 11
+// --------------------------------------------------------
+day11 :: () {
+    day11_test();
+    day11_actual();
+}
+
+day11_test :: () {
+    input, success := read_entire_file("data/day11_example.txt");
+    assert(success);
+
+    part1 := day11_solve(input);
+    assert(part1 == 10605);
+}
+
+day11_actual :: () {
+    input, success := read_entire_file("data/day11.txt");
+    assert(success);
+
+    part1 := day11_solve(input);
+    assert(part1 == 61005);
+    print("day11 part1: %\n", part1);
+    //print("day11 part2: \n%\n", part2);
+}
+
+day11_solve :: (input: string) -> int {
+    monkey_strings := split(input, "\r\n\r\n");   
+    assert(monkey_strings.count > 1);
+
+    monkies : [..]d11_monkey;
+
+    // parse 
+    for monkey_str : monkey_strings {
+        new_monkey : d11_monkey;
+
+        monkey_lines := split(trim(monkey_str), "\r\n");
+        assert(monkey_lines.count == 6);
+
+        // extract items
+        items_str := slice(monkey_lines[1], 18);
+        for item : split(items_str, ", ") array_add(*new_monkey.items, string_to_int(item));
+        
+        // extract operation
+        op_str := slice(monkey_lines[2], 23);
+        if op_str == "* old" {
+            new_monkey.op_type = d11_op.square;
+        }
+        else if starts_with(op_str, "+") {
+            new_monkey.op_type = d11_op.add;
+            new_monkey.op_value = string_to_int(slice(op_str, 2));
+        } else if starts_with(op_str, "*") {
+            new_monkey.op_type = d11_op.multiply;
+            new_monkey.op_value = string_to_int(slice(op_str, 2));
+        } else {
+            assert(false);
+        }
+
+        // extrat test
+        new_monkey.test_value = string_to_int(slice(monkey_lines[3], 21));
+
+        // extract targets
+        new_monkey.true_target = string_to_int(slice(monkey_lines[4], 29));
+        new_monkey.false_target = string_to_int(slice(monkey_lines[5], 30));
+
+        // store monkey
+        array_add(*monkies, new_monkey);
+    }
+
+    // run rounds
+    for 0..19 {
+        // update monkey
+        for *monkey : monkies {
+            // process each item
+            for item : monkey.items {
+                // apply operation
+                if monkey.op_type == d11_op.add {
+                    item += monkey.op_value;
+                } else if monkey.op_type == d11_op.multiply {
+                    item *= monkey.op_value;
+                } else if monkey.op_type == d11_op.square {
+                    item *= item;
+                } else { assert(false); }
+
+                // decrease worry
+                item /= 3;
+
+                // update counter
+                monkey.items_inspected += 1;
+
+                // throw to new monkey
+                target := ifx item % monkey.test_value == 0 
+                    then monkey.true_target
+                    else monkey.false_target;
+                
+                array_add(*monkies[target].items, item);
+            }
+
+            // always throw all items
+            monkey.items.count = 0;
+        }
+    }
+
+    // sort
+    compare :: (a: *d11_monkey, b: *d11_monkey) -> s64 {
+        delta := a.items_inspected - b.items_inspected;
+        if delta < 0 return  1;
+        if delta > 0 return -1;
+        return 0;
+    }
+    monkey_ptrs : [..]*d11_monkey;
+    for *monkey : monkies array_add(*monkey_ptrs, monkey);
+    sorted_monkies := quick_sort(monkey_ptrs, compare);
+
+    part1 := sorted_monkies[0].items_inspected * sorted_monkies[1].items_inspected;
+    return part1;
+}
+
+d11_op :: enum { add; multiply; square; };
+
+d11_monkey :: struct {
+    items : [..]int;
+    op_type : d11_op;
+    op_value : int;
+    test_value: int;
+    true_target : int;
+    false_target : int;
+    items_inspected : int;
+}
 
 #import "Basic";
 #import "Deep_Copy";
