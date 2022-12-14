@@ -1463,6 +1463,7 @@ day12_actual :: () {
     assert(success);
 
     part1 := day12_solve(input);
+    assert(part1 == 352);
     print("day12 part1: %\n", part1);
 
     // part2 := day11_solve(input);
@@ -1509,9 +1510,8 @@ day12_solve :: (input: string) -> int {
         entry_idx := vec2_to_idx(entry.pos, width);
         entry_height := map[entry_idx];
 
-        if entry_height == #char "z" {
-            // why am I off by one?
-            part1 := entry.steps + 1;
+        if entry_height == #char "E" {
+            part1 := entry.steps;
             print("part1: %\n", part1);
             return part1;
         }
@@ -1537,6 +1537,9 @@ day12_solve :: (input: string) -> int {
 
             // neighbor must be "at most one higher"
             neighbor_height := map[vec2_to_idx(n_pos, width)];
+            if neighbor_height == #char "E" {
+                neighbor_height = #char "z" + 1;
+            }
             if neighbor_height > entry_height + 1 {
                 continue;
             }
