@@ -9,7 +9,8 @@ main :: () {
     // day08();
     // day09();
     // day10();
-    day11();
+    // day11();
+    day12();
 }
 
 // --------------------------------------------------------
@@ -104,6 +105,22 @@ slice :: (s: string, start: s64) -> string {
     result.data += start;
     result.count -= start;
     return result;
+}
+
+vec2_to_idx :: (v: Vec2, width: int) -> int {
+    return v.y*width + v.x;
+}
+
+idx_to_vec2 :: (idx: int, width: int) -> Vec2 {
+    v : Vec2;
+    v.x = idx % width;
+    v.y = idx / width;
+    return v;
+}
+
+array_contains :: (array: [] $T, item: T) -> bool {
+    success, idx := array_find(array, item);
+    return success;
 }
 
 // --------------------------------------------------------
@@ -1424,6 +1441,124 @@ d11_monkey :: struct {
     true_target : int;
     false_target : int;
     items_inspected : int;
+}
+
+// --------------------------------------------------------
+// Day 12
+// --------------------------------------------------------
+day12 :: () {
+    day12_test();
+    day12_actual();
+}
+
+day12_test :: () {
+    input, success := read_entire_file("data/day12_example.txt");
+    assert(success);
+
+    assert(day12_solve(input) == 31);
+}
+
+day12_actual :: () {
+    input, success := read_entire_file("data/day12.txt");
+    assert(success);
+
+    part1 := day12_solve(input);
+    print("day12 part1: %\n", part1);
+
+    // part2 := day11_solve(input);
+    // print("day11 part2: %\n", part2);
+}
+
+day12_solve :: (input: string) -> int {
+    map : [..]u8;
+
+    // build map
+    lines := split(input, "\r\n");
+    assert(lines.count > 0);
+    width := lines[0].count;
+    height := lines.count;
+
+    for line : lines {
+        for line_idx: 0..line.count - 1 {
+            array_add(*map, line[line_idx]);
+        }
+    }
+
+    // helper data
+    offsets : [4]Vec2;
+    offsets[0] = Vec2.{-1,0};
+    offsets[1] = Vec2.{1,0};
+    offsets[2] = Vec2.{0,-1};
+    offsets[3] = Vec2.{0,1};
+
+    // initialize simple search
+    open_list : [..]d12_entry;
+    visited : [..]int;
+
+    // find start
+    success, start_idx := array_find(map, #char "S");
+    assert(success);
+
+    initial_entry : d12_entry;
+    initial_entry.pos = idx_to_vec2(start_idx, width);
+    array_add(*open_list, initial_entry);
+    
+    // climb the hill
+    while true {
+        entry := pop(*open_list);
+        entry_idx := vec2_to_idx(entry.pos, width);
+        entry_height := map[entry_idx];
+
+        if entry_height == #char "z" {
+            // why am I off by one?
+            part1 := entry.steps + 1;
+            print("part1: %\n", part1);
+            return part1;
+        }
+
+        if entry_height == #char "S" entry_height = #char "a";
+
+        // don't re-visit positions
+        if array_contains(visited, entry_idx) {
+            continue;
+        }
+        array_add(*visited, entry_idx);
+        assert(visited.count <= map.count); 
+
+        // check neighbors
+        for offset : offsets {
+            // calc neighbor pos
+            n_pos := add(entry.pos, offset);
+            
+            // must be within bounds
+            if n_pos.x < 0 || n_pos.x >= width || n_pos.y < 0 || n_pos.y >= height {
+                continue;
+            }
+
+            // neighbor must be "at most one higher"
+            neighbor_height := map[vec2_to_idx(n_pos, width)];
+            if neighbor_height > entry_height + 1 {
+                continue;
+            }
+
+            // create new entry
+            new_entry : d12_entry;
+            new_entry.pos = n_pos;
+            new_entry.steps = entry.steps + 1;
+
+            // add it to the front
+            // gross and inefficient, oh well
+            array_insert_at(*open_list, new_entry, 0);
+        }
+    }
+
+    assert(false);
+    return 0;
+}
+
+d12_entry :: struct {
+    pos : Vec2;
+    steps : int;
 }
 
 #import "Basic";
