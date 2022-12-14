@@ -1455,22 +1455,24 @@ day12_test :: () {
     input, success := read_entire_file("data/day12_example.txt");
     assert(success);
 
-    assert(day12_solve(input) == 31);
+    assert(day12_solve(input, true) == 31);
+    assert(day12_solve(input, false) == 29);
 }
 
 day12_actual :: () {
     input, success := read_entire_file("data/day12.txt");
     assert(success);
 
-    part1 := day12_solve(input);
+    part1 := day12_solve(input, true);
     assert(part1 == 352);
     print("day12 part1: %\n", part1);
 
-    // part2 := day11_solve(input);
-    // print("day11 part2: %\n", part2);
+    part2 := day12_solve(input, false);
+    assert(part2 == 345);
+    print("day12 part2: %\n", part2);
 }
 
-day12_solve :: (input: string) -> int {
+day12_solve :: (input: string, part1: bool) -> int {
     map : [..]u8;
 
     // build map
@@ -1485,6 +1487,31 @@ day12_solve :: (input: string) -> int {
         }
     }
 
+    if part1 {
+        // find start
+        success, start_idx := array_find(map, #char "S");
+        assert(success);
+
+        has_solution, part1 := d12_solve(map, width, height, start_idx);
+        assert(has_solution);
+        return part1;
+    } else {
+        part2 : int = 2147483647;  
+
+        for start_idx: 0..map.count-1 {
+            if map[start_idx] == #char "a" {
+                has_solution, maybe_part2 := d12_solve(map, width, height, start_idx);
+                if has_solution {
+                    part2 = min(part2, maybe_part2);
+                }
+            }
+        }
+
+        return part2;
+    }
+}
+
+d12_solve :: (map: []u8, width: int, height: int, start_idx: int) -> bool, int {
     // helper data
     offsets : [4]Vec2;
     offsets[0] = Vec2.{-1,0};
@@ -1496,26 +1523,23 @@ day12_solve :: (input: string) -> int {
     open_list : [..]d12_entry;
     visited : [..]int;
 
-    // find start
-    success, start_idx := array_find(map, #char "S");
-    assert(success);
-
     initial_entry : d12_entry;
     initial_entry.pos = idx_to_vec2(start_idx, width);
     array_add(*open_list, initial_entry);
     
     // climb the hill
-    while true {
+    while open_list.count > 0 {
         entry := pop(*open_list);
         entry_idx := vec2_to_idx(entry.pos, width);
         entry_height := map[entry_idx];
-
+        
+        // check for summit
         if entry_height == #char "E" {
-            part1 := entry.steps;
-            print("part1: %\n", part1);
-            return part1;
+            answer := entry.steps;
+            return true, answer;
         }
-
+        
+        // correct for starting position
         if entry_height == #char "S" entry_height = #char "a";
 
         // don't re-visit positions
@@ -1535,11 +1559,13 @@ day12_solve :: (input: string) -> int {
                 continue;
             }
 
-            // neighbor must be "at most one higher"
+            // get neighbor height, correct for summit
             neighbor_height := map[vec2_to_idx(n_pos, width)];
             if neighbor_height == #char "E" {
                 neighbor_height = #char "z" + 1;
             }
+
+            // neighbor must be "at most one higher"
             if neighbor_height > entry_height + 1 {
                 continue;
             }
@@ -1555,8 +1581,7 @@ day12_solve :: (input: string) -> int {
         }
     }
 
-    assert(false);
-    return 0;
+    return false, 0;
 }
 
 d12_entry :: struct {
