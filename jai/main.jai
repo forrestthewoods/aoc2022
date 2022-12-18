@@ -10,7 +10,8 @@ main :: () {
     // day09();
     // day10();
     // day11();
-    day12();
+    // day12();
+    day13();
 }
 
 // --------------------------------------------------------
@@ -1587,6 +1588,107 @@ d12_solve :: (map: []u8, width: int, height: int, start_idx: int) -> bool, int {
 d12_entry :: struct {
     pos : Vec2;
     steps : int;
+}
+
+// --------------------------------------------------------
+// Day 13
+// --------------------------------------------------------
+day13 :: () {
+    day13_test();
+    //day13_actual();
+}
+
+day13_test :: () {
+    input, success := read_entire_file("data/day13_example.txt");
+    assert(success);
+
+    day13_solve(input);
+}
+
+day13_actual :: () {
+    input, success := read_entire_file("data/day13.txt");
+    assert(success);
+
+    part1 := day13_solve(input);
+    print("day13 part1: %\n", part1);
+    part2 := day13_solve(input);
+    print("day13 part2: %\n", part2);
+}
+
+day13_solve :: (input: string) -> int {
+    pairs := split(input, "\r\n\r\n");
+    assert(pairs.count > 1);
+
+    find_span :: (s: string) -> string {
+        assert(s[0] == #char "[");
+        
+        num_open := 0;
+        idx := 0;
+        while true {
+            // Increment
+            if s[idx] == #char"[" num_open += 1;
+            else if s[idx] == #char"]" num_open -= 1;
+            assert(num_open >= 0);
+            
+            // Check for end
+            if num_open == 0 {
+                result := s;
+                result.count = idx + 1;
+                return s;
+            }
+
+            idx += 1;
+            assert(idx < s.count);
+        }
+
+        assert(false);
+        return "";
+    }
+
+    find_digits :: (start: *u8) -> string {
+        assert(is_digit(<<start));
+
+        idx := 0;
+        while is_digit(start[idx]) idx += 1;
+
+        result : string;
+        result.data = start;
+        result.count = idx - 1;
+        return result;
+    }
+
+    is_ordered :: (a: string, b: string) -> bool {
+        assert(a[0] == #char"[" && b[0] == #char"[");
+        assert(a[a.count - 1] == #char"]" && b[b.count - 1] == #char"]");
+
+        da := is_digit(a[1]);
+        db := is_digit(b[1]);
+
+        if da && db {
+            va := string_to_int(find_digits(a.data[1]));
+            vb := string_to_int(find_digits(b.data[1]));
+
+            if va < vb return true;
+            else if vb < va return false; 
+        } else if !da && !db {
+        }
+
+        return true;
+    }
+
+    for pair : pairs {
+        parts := split(pair, "\r\n");
+
+        idx_a := 0;
+        idx_b := 0;
+
+
+        assert(parts.count == 2);
+    }
+
+    part1 := 0;
+    print("day13 part1 (debug): %\n", part1);
+    return part1;
 }
 
 #import "Basic";
