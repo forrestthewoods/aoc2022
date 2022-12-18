@@ -1619,6 +1619,7 @@ day13_solve :: (input: string) -> int {
     pairs := split(input, "\r\n\r\n");
     assert(pairs.count > 1);
 
+/*
     find_span :: (s: string) -> string {
         assert(s[0] == #char "[");
         
@@ -1685,10 +1686,117 @@ day13_solve :: (input: string) -> int {
 
         assert(parts.count == 2);
     }
+*/
+
+    parsed := day13_parse(input);
+    assert(parsed % 2 == 0);
+
+    // Iterate pairs
+    pair_idx := 0;
+    while pair_idx < parsed.count {
+        defer pair_idx += 2;
+    }
+    
+    print("%", parsed);
+
+     
 
     part1 := 0;
     print("day13 part1 (debug): %\n", part1);
     return part1;
+}
+
+day13_parse :: (input : string) -> [..][..]d13_element {
+    result : [..][..]d13_element;
+
+    for pair : split(input, "\r\n\r\n") {
+        for line : split(pair, "\r\n") {
+            parsed_row : [..]d13_element = day13_parseElement(line);
+            array_add(*result, parsed_row);
+        }
+    }
+
+    return result;
+}
+
+day13_parseElement :: (line: string) -> [..]d13_element {
+    assert(line[0] == #char"[");
+    assert(line[line.count - 1] == #char"]");
+
+    find_digits :: (start: *u8) -> string {
+        assert(is_digit(<<start));
+
+        idx := 0;
+        while is_digit(start[idx]) idx += 1;
+
+        result : string;
+        result.data = start;
+        result.count = idx;
+        return result;
+    }
+
+    find_span :: (s: *u8) -> string {
+        assert(s[0] == #char "[");
+        
+        num_open := 0;
+        idx := 0;
+        while true {
+            // Increment
+            if s[idx] == #char"[" num_open += 1;
+            else if s[idx] == #char"]" num_open -= 1;
+            assert(num_open >= 0);
+            
+            // Check for end
+            if num_open == 0 {
+                result : string;
+                result.data = s;
+                result.count = idx + 1;
+                return result;
+            }
+
+            idx += 1;
+        }
+
+        assert(false);
+        return "";
+    }
+
+    result : [..]d13_element;
+
+    idx := 1;
+    while idx < line.count - 1{
+        if line[idx] == #char"," {
+            idx += 1;
+        }
+        else if is_digit(line[idx]) {
+            digits := find_digits(line.data + idx);
+            number := string_to_int(digits);
+
+            new_element : d13_element;
+            new_element.number = number;
+            array_add(*result, new_element);
+
+            idx += digits.count + 1;
+        }
+        else {
+            assert(line[idx] == #char"[");
+
+            subspan := find_span(line.data + idx);
+
+            new_element : d13_element;
+            new_element.nested = day13_parseElement(subspan);
+            array_add(*result, new_element);
+
+            idx += subspan.count + 1;
+        }
+    }
+
+    return result;
+}
+
+d13_element :: struct {
+    nested : [..]d13_element;
+    number : int;
 }
 
 #import "Basic";
