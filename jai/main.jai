@@ -11,7 +11,8 @@ main :: () {
     // day10();
     // day11();
     // day12();
-    day13();
+    // day13();
+    day14();
 }
 
 // --------------------------------------------------------
@@ -68,6 +69,13 @@ Vec2 :: struct {
     y : int;
 }
 
+make_vec2 :: (x: int, y: int) -> Vec2 {
+    result: Vec2;
+    result.x = x;
+    result.y = y;
+    return result;
+}
+
 add :: (a: Vec2, b: Vec2) -> Vec2 {
     result : Vec2;
     result.x = a.x + b.x;
@@ -117,6 +125,16 @@ idx_to_vec2 :: (idx: int, width: int) -> Vec2 {
     v.x = idx % width;
     v.y = idx / width;
     return v;
+}
+
+parse_vec2 :: (s: string) -> Vec2 {
+    parts := split(s, ",");
+    assert(parts.count == 2);
+
+    result : Vec2;
+    result.x = string_to_int(parts[0]);
+    result.y = string_to_int(parts[1]);
+    return result;
 }
 
 array_contains :: (array: [] $T, item: T) -> bool {
@@ -1837,6 +1855,104 @@ day13_parseElement :: (line: string) -> [..]d13_element {
 d13_element :: struct {
     nested : [..]d13_element;
     number : int = -1;
+}
+
+// --------------------------------------------------------
+// Day 14
+// --------------------------------------------------------
+day14 :: () {
+    day14_test();
+    day14_actual();
+}
+
+day14_test :: () {
+    input, success := read_entire_file("data/day14_example.txt");
+    assert(success);
+
+    part1, part2 := day14_solve(input);
+}
+
+day14_actual :: () {
+    input, success := read_entire_file("data/day14.txt");
+    assert(success);
+
+    part1, part2 := day14_solve(input);
+    assert(part1 == 698);
+    print("day14 part1: %\n", part1);
+    print("day14 part2: %\n", part2);
+}
+
+day14_solve :: (input: string) -> int, int {
+    // parse
+    map : Table(Vec2, int, get_hash);
+    init(*map, 256);
+
+    for line : split(input, "\r\n") {
+        parts := split(line, " -> ");
+        assert(parts.count >= 2);
+
+        start := parse_vec2(parts[0]);
+
+        for part_idx: 1..parts.count - 1 {
+            end := parse_vec2(parts[part_idx]);
+
+            sx := min(start.x, end.x);
+            ex := max(start.x, end.x);
+            sy := min(start.y, end.y);
+            ey := max(start.y, end.y);
+
+            for x:sx..ex {
+                for y:sy..ey {
+                    pos := make_vec2(x,y);
+                    table_set(*map, pos, 1);
+                }
+            }
+
+            start = end;
+        }
+    }
+
+    // find low point (positive down)
+    max_y := 0;
+    for map {
+        key, value := it_index, it;
+        max_y = max(max_y, key.y);
+    }
+
+    spot_filled :: (t: *Table, k: Vec2) -> bool {
+        value, success := table_find(t, k);
+        return success;
+    }
+
+    // spawn sand from the ceiling
+    num_sands := 0;
+    sand_pos : Vec2;
+    while sand_pos.y <= max_y {
+        // spawn a new grain of sand
+        sand_pos = Vec2.{500, 0};
+        while sand_pos.y <= max_y {
+            down := add(sand_pos, Vec2.{0,1});
+            down_left := add(sand_pos, Vec2.{-1,1});
+            down_right := add(sand_pos, Vec2.{1,1});
+            
+            // move sand
+            if !spot_filled(*map, down) sand_pos = down;
+            else if !spot_filled(*map, down_left) sand_pos = down_left;
+            else if !spot_filled(*map, down_right) sand_pos = down_right;
+            else {
+                table_set(*map, sand_pos, 1);
+                num_sands += 1;
+                break;
+            }
+        }
+    }
+
+    part1 := num_sands;
+    part2 := 0;
+
+    print("(debug) part1: %\n", part1);
+    print("(debug) part2: %\n", part2);
+    return part1, part2;
 }
 
 #import "Basic";
