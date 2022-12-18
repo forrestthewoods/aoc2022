@@ -12,7 +12,8 @@ main :: () {
     // day11();
     // day12();
     // day13();
-    day14();
+    // day14();
+    day15();
 }
 
 // --------------------------------------------------------
@@ -1975,6 +1976,107 @@ day14_solve :: (input: string, part1: bool) -> int {
     }
 
     return num_sands;
+}
+
+// --------------------------------------------------------
+// Day 15
+// --------------------------------------------------------
+day15 :: () {
+    day15_test();
+    day15_actual();
+}
+
+day15_test :: () {
+    input, success := read_entire_file("data/day15_example.txt");
+    assert(success);
+
+    part1 := day15_solve(input, 10);
+    print("(test) day15 part1: %\n", part1);
+    assert(part1 == 26);
+
+    //part2 := day15_solve(input);
+    //print("(test) day15 part2: %\n", part1);
+    //assert(part2 == 93);
+}
+
+day15_actual :: () {
+    input, success := read_entire_file("data/day15.txt");
+    assert(success);
+
+    part1 := day15_solve(input, 2000000);
+    assert(part1 == 698);
+    print("day15 part1: %\n", part1);
+
+    // part2 := day15_solve(input, false);
+    // print("day15 part2: %\n", part2);
+    // assert(part2 == 28594);
+}
+
+day15_solve :: (input: string, test_row: int) -> int {
+    // constants
+    SENSOR : int : 1;
+    BEACON : int : 2;
+    SCANNED : int : 3;
+    
+    // parse data
+    sensors : [..]Vec2;
+    beacons : [..]Vec2;
+
+    for line : split(input, "\r\n") {
+        parts := split(line, " ");
+        assert(parts.count == 10);
+
+        sensor := make_vec2(
+            string_to_int(trim(parts[2], "x=,")),
+            string_to_int(trim(parts[3], "y=,")));
+        array_add(*sensors, sensor);
+
+        beacon := make_vec2(
+            string_to_int(trim(parts[8], "x=,")),
+            string_to_int(trim(parts[9], "y=,")));
+        array_add(*beacons, beacon);
+    }
+
+    // build a map
+    map : Table(Vec2, int, get_hash);
+
+    // init map
+    init(*map, 1);
+    for sensors table_set(*map, it, SENSOR);
+    for beacons table_set(*map, it, BEACON);
+
+    for idx: 0..sensors.count - 1 {
+        sensor := sensors[idx];
+        beacon := beacons[idx];
+
+        diff := subtract(beacon, sensor);
+        radius := manhatten_length(diff);
+
+        // be super lazy
+        for x:-radius..radius {
+            for y:-radius..radius {
+                pos := add(sensor, make_vec2(x,y));
+                d2 := manhatten_length(subtract(pos, sensor));
+                if d2 <= radius {
+                    v, filled := table_find(*map, pos);
+                    if !filled table_set(*map, pos, SCANNED);
+                }
+            }
+        }
+    }
+
+    // check scanned row
+    part1 := 0;
+    for map {
+        pos : Vec2 = it_index;
+        if pos.y == test_row {
+            v, success := table_find(*map, pos);
+            assert(success);
+            if v == SCANNED part1 += 1;
+        }
+    }
+
+    return part1;
 }
 
 #import "Basic";
