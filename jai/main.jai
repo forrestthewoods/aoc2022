@@ -1602,19 +1602,23 @@ day13_test :: () {
     input, success := read_entire_file("data/day13_example.txt");
     assert(success);
 
-    day13_solve(input);
+    part1, part2 := day13_solve(input);
+    assert(part1 == 13);
+    assert(part2 == 140);
 }
 
 day13_actual :: () {
     input, success := read_entire_file("data/day13.txt");
     assert(success);
 
-    part1 := day13_solve(input);
+    part1, part2 := day13_solve(input);
     print("day13 part1: %\n", part1);
     assert(part1 == 6070);
+    print("day13 part2: %\n", part2);
+    assert(part2 == 20758);
 }
 
-day13_solve :: (input: string) -> int {
+day13_solve :: (input: string) -> int, int {
     pairs := split(input, "\r\n\r\n");
     assert(pairs.count > 1);
 
@@ -1622,9 +1626,9 @@ day13_solve :: (input: string) -> int {
     parsed := day13_parse(input);
     assert(parsed.count % 2 == 0);
 
-    part1 := 0;
 
-    // Iterate pairs
+    // Part1: Iterate pairs and check sorted
+    part1 := 0;
     parsed_idx := 0;
     while parsed_idx < parsed.count {
         defer parsed_idx += 2;
@@ -1635,16 +1639,64 @@ day13_solve :: (input: string) -> int {
         pair_idx := parsed_idx / 2 + 1;
         ordered := day13_compare(a, b);
         assert(ordered == 1 || ordered == -1);
+
         if ordered == 1 {
-            print("pair % is ordered\n\n", pair_idx);
+            //print("pair % is ordered\n\n", pair_idx);
             part1 += pair_idx;
         } else {
-            print("pair % is NOT ordered\n\n", pair_idx);
+            //print("pair % is NOT ordered\n\n", pair_idx);
         }
     }
+
+    // Part2: Sort list, find certain things
+    is_divider :: (e: [..]d13_element) -> bool {
+        if e.count == 1 {
+            inner := e.data[0];
+            if inner.nested.count == 1 {
+                v := inner.nested[0].number;
+                if v == 2 || v == 6 {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // inject dividers
+    {
+        divider : [..]d13_element;
+        inner : d13_element;
+        inner_value := d13_element.{number = 2};
+        array_add(*inner.nested, inner_value);
+        array_add(*divider, inner);
+        array_add(*parsed, divider);
+    }
+        {
+        divider : [..]d13_element;
+        inner : d13_element;
+        inner_value := d13_element.{number = 6};
+        array_add(*inner.nested, inner_value);
+        array_add(*divider, inner);
+        array_add(*parsed, divider);
+    }
+
+    inv_sort :: (a: [..]d13_element, b: [..]d13_element) -> int {
+        return day13_compare(a,b) * -1;
+    }
+
+    sorted := quick_sort(parsed, inv_sort);
+    part2 := 1;
+    for sorted {
+        //print("row: %\n", it);
+        if is_divider(it) {
+            //print("found divider at: %\n", it_index + 1);
+            part2 *= it_index + 1;
+        }
+    }
+    print("part2: %\n", part2);
     
-    print("day13 part1 (debug): %\n", part1);
-    return part1;
+    return part1, part2;
 }
 
 day13_compare :: (a : [..]d13_element, b: [..]d13_element) -> int {
@@ -1671,16 +1723,16 @@ day13_compare :: (a : [..]d13_element, b: [..]d13_element) -> int {
             va := a[a_idx].number;
             vb := b[b_idx].number;
 
-            print("compare % vs %\n", va, vb);
+            //print("compare % vs %\n", va, vb);
             if va < vb return 1;
             if vb < va return -1;
         } else if !na && !nb {
-            print("compare nested vs nested\n");
+            //print("compare nested vs nested\n");
             maybe_result := day13_compare(a[a_idx].nested, b[b_idx].nested);
             if maybe_result != 0 return maybe_result;
         } else {
             // Mixed
-            print("mixed types\n");
+            //print("mixed types\n");
             if na {
                 fake_list : [..]d13_element;
                 array_add(*fake_list, a[a_idx]);
