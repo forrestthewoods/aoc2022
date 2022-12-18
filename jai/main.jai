@@ -1595,7 +1595,7 @@ d12_entry :: struct {
 // --------------------------------------------------------
 day13 :: () {
     day13_test();
-    //day13_actual();
+    day13_actual();
 }
 
 day13_test :: () {
@@ -1611,99 +1611,92 @@ day13_actual :: () {
 
     part1 := day13_solve(input);
     print("day13 part1: %\n", part1);
-    part2 := day13_solve(input);
-    print("day13 part2: %\n", part2);
+    assert(part1 == 6070);
 }
 
 day13_solve :: (input: string) -> int {
     pairs := split(input, "\r\n\r\n");
     assert(pairs.count > 1);
 
-/*
-    find_span :: (s: string) -> string {
-        assert(s[0] == #char "[");
-        
-        num_open := 0;
-        idx := 0;
-        while true {
-            // Increment
-            if s[idx] == #char"[" num_open += 1;
-            else if s[idx] == #char"]" num_open -= 1;
-            assert(num_open >= 0);
-            
-            // Check for end
-            if num_open == 0 {
-                result := s;
-                result.count = idx + 1;
-                return s;
-            }
-
-            idx += 1;
-            assert(idx < s.count);
-        }
-
-        assert(false);
-        return "";
-    }
-
-    find_digits :: (start: *u8) -> string {
-        assert(is_digit(<<start));
-
-        idx := 0;
-        while is_digit(start[idx]) idx += 1;
-
-        result : string;
-        result.data = start;
-        result.count = idx - 1;
-        return result;
-    }
-
-    is_ordered :: (a: string, b: string) -> bool {
-        assert(a[0] == #char"[" && b[0] == #char"[");
-        assert(a[a.count - 1] == #char"]" && b[b.count - 1] == #char"]");
-
-        da := is_digit(a[1]);
-        db := is_digit(b[1]);
-
-        if da && db {
-            va := string_to_int(find_digits(a.data[1]));
-            vb := string_to_int(find_digits(b.data[1]));
-
-            if va < vb return true;
-            else if vb < va return false; 
-        } else if !da && !db {
-        }
-
-        return true;
-    }
-
-    for pair : pairs {
-        parts := split(pair, "\r\n");
-
-        idx_a := 0;
-        idx_b := 0;
-
-
-        assert(parts.count == 2);
-    }
-*/
-
+    // parse into lines
     parsed := day13_parse(input);
-    assert(parsed % 2 == 0);
-
-    // Iterate pairs
-    pair_idx := 0;
-    while pair_idx < parsed.count {
-        defer pair_idx += 2;
-    }
-    
-    print("%", parsed);
-
-     
+    assert(parsed.count % 2 == 0);
 
     part1 := 0;
+
+    // Iterate pairs
+    parsed_idx := 0;
+    while parsed_idx < parsed.count {
+        defer parsed_idx += 2;
+
+        a := parsed[parsed_idx];
+        b := parsed[parsed_idx + 1];
+
+        pair_idx := parsed_idx / 2 + 1;
+        ordered := day13_compare(a, b);
+        assert(ordered == 1 || ordered == -1);
+        if ordered == 1 {
+            print("pair % is ordered\n\n", pair_idx);
+            part1 += pair_idx;
+        } else {
+            print("pair % is NOT ordered\n\n", pair_idx);
+        }
+    }
+    
     print("day13 part1 (debug): %\n", part1);
     return part1;
+}
+
+day13_compare :: (a : [..]d13_element, b: [..]d13_element) -> int {
+    a_idx := 0;
+    b_idx := 0;
+
+    is_number :: (e: d13_element) -> bool {
+        return e.number != -1;
+    }
+
+    while true {
+        defer a_idx += 1;
+        defer b_idx += 1;
+        
+        if a_idx >= a.count && b_idx < b.count return 1;
+        else if b_idx >= b.count && a_idx < a.count return -1;
+        else if a_idx >= a.count && b_idx >= b.count return 0;
+
+        na := is_number(a[a_idx]);
+        nb := is_number(b[b_idx]);
+
+        if na && nb {
+            // Both numbers
+            va := a[a_idx].number;
+            vb := b[b_idx].number;
+
+            print("compare % vs %\n", va, vb);
+            if va < vb return 1;
+            if vb < va return -1;
+        } else if !na && !nb {
+            print("compare nested vs nested\n");
+            maybe_result := day13_compare(a[a_idx].nested, b[b_idx].nested);
+            if maybe_result != 0 return maybe_result;
+        } else {
+            // Mixed
+            print("mixed types\n");
+            if na {
+                fake_list : [..]d13_element;
+                array_add(*fake_list, a[a_idx]);
+                maybe_result := day13_compare(fake_list, b[b_idx].nested);
+                if maybe_result != 0 return maybe_result;
+            } else if nb {
+                fake_list : [..]d13_element;
+                array_add(*fake_list, b[b_idx]);
+                maybe_result := day13_compare(a[a_idx].nested, fake_list);
+                if maybe_result != 0 return maybe_result;
+            } else assert(false);
+        }
+    }
+
+    assert(false);
+    return 0;
 }
 
 day13_parse :: (input : string) -> [..][..]d13_element {
@@ -1796,7 +1789,7 @@ day13_parseElement :: (line: string) -> [..]d13_element {
 
 d13_element :: struct {
     nested : [..]d13_element;
-    number : int;
+    number : int = -1;
 }
 
 #import "Basic";
