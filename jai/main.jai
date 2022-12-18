@@ -2004,7 +2004,7 @@ day15_actual :: () {
     assert(success);
 
     part1 := day15_solve(input, 2000000);
-    assert(part1 == 698);
+    assert(part1 == 4879972);
     print("day15 part1: %\n", part1);
 
     // part2 := day15_solve(input, false);
@@ -2021,6 +2021,10 @@ day15_solve :: (input: string, test_row: int) -> int {
     // parse data
     sensors : [..]Vec2;
     beacons : [..]Vec2;
+    radii : [..]int;
+
+    min_x := 1_000_000_000;
+    max_x := -1_000_000_000;
 
     for line : split(input, "\r\n") {
         parts := split(line, " ");
@@ -2035,8 +2039,19 @@ day15_solve :: (input: string, test_row: int) -> int {
             string_to_int(trim(parts[8], "x=,")),
             string_to_int(trim(parts[9], "y=,")));
         array_add(*beacons, beacon);
+
+        array_add(*radii, manhatten_length(subtract(beacon, sensor)));
+
+        min_x = min(min_x, beacon.x);
+        max_x = max(max_x, beacon.x);
     }
 
+    map : Table(Vec2, int, get_hash);
+    init(*map, sensors.count * 2);
+    for sensors table_set(*map, it, SENSOR);
+    for beacons table_set(*map, it, BEACON);
+
+/*
     // build a map
     map : Table(Vec2, int, get_hash);
 
@@ -2073,6 +2088,25 @@ day15_solve :: (input: string, test_row: int) -> int {
             v, success := table_find(*map, pos);
             assert(success);
             if v == SCANNED part1 += 1;
+        }
+    }
+*/
+    part1 := 0;
+    for x:min_x..max_x {
+        pos := make_vec2(x, test_row);
+        for idx:0..sensors.count - 1 {
+            sensor := sensors[idx];
+            radius := radii[idx];
+
+            dist := manhatten_length(subtract(pos, sensor));
+            if dist <= radius {
+                v, found := table_find(*map, pos);
+                if !found {
+                    //print("Available pos: %\n", pos);
+                    part1 += 1;
+                    break;
+                }
+            }
         }
     }
 
