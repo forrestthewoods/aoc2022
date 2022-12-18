@@ -1641,10 +1641,7 @@ day13_solve :: (input: string) -> int, int {
         assert(ordered == 1 || ordered == -1);
 
         if ordered == 1 {
-            //print("pair % is ordered\n\n", pair_idx);
             part1 += pair_idx;
-        } else {
-            //print("pair % is NOT ordered\n\n", pair_idx);
         }
     }
 
@@ -1664,6 +1661,7 @@ day13_solve :: (input: string) -> int, int {
     }
 
     // inject dividers
+    // this might be the ugliest code I've ever written for AoC
     {
         divider : [..]d13_element;
         inner : d13_element;
@@ -1688,13 +1686,10 @@ day13_solve :: (input: string) -> int, int {
     sorted := quick_sort(parsed, inv_sort);
     part2 := 1;
     for sorted {
-        //print("row: %\n", it);
         if is_divider(it) {
-            //print("found divider at: %\n", it_index + 1);
             part2 *= it_index + 1;
         }
     }
-    print("part2: %\n", part2);
     
     return part1, part2;
 }
