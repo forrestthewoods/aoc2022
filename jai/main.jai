@@ -1869,23 +1869,34 @@ day14_test :: () {
     input, success := read_entire_file("data/day14_example.txt");
     assert(success);
 
-    part1, part2 := day14_solve(input);
+    part1 := day14_solve(input, true);
+    assert(part1 == 24);
+
+    part2 := day14_solve(input, false);
+    assert(part2 == 93);
 }
 
 day14_actual :: () {
     input, success := read_entire_file("data/day14.txt");
     assert(success);
 
-    part1, part2 := day14_solve(input);
+    part1 := day14_solve(input, true);
     assert(part1 == 698);
     print("day14 part1: %\n", part1);
+
+    part2 := day14_solve(input, false);
     print("day14 part2: %\n", part2);
+    assert(part2 == 28594);
 }
 
-day14_solve :: (input: string) -> int, int {
+day14_solve :: (input: string, part1: bool) -> int {
+    // constants
+    spawn_pos :: Vec2.{500, 0};
+
+
     // parse
     map : Table(Vec2, int, get_hash);
-    init(*map, 256);
+    init(*map, 1);
 
     for line : split(input, "\r\n") {
         parts := split(line, " -> ");
@@ -1919,6 +1930,18 @@ day14_solve :: (input: string) -> int, int {
         max_y = max(max_y, key.y);
     }
 
+    // Infinite floor for part2
+    if !part1 {
+        max_y += 2;   
+        sx := -(max_y * 3);
+        ex := (max_y * 3);
+        
+        for x: sx..ex {
+            pos := make_vec2(spawn_pos.x + x,max_y);
+            table_set(*map, pos, 1);
+        }
+    }
+
     spot_filled :: (t: *Table, k: Vec2) -> bool {
         value, success := table_find(t, k);
         return success;
@@ -1929,7 +1952,7 @@ day14_solve :: (input: string) -> int, int {
     sand_pos : Vec2;
     while sand_pos.y <= max_y {
         // spawn a new grain of sand
-        sand_pos = Vec2.{500, 0};
+        sand_pos = spawn_pos;
         while sand_pos.y <= max_y {
             down := add(sand_pos, Vec2.{0,1});
             down_left := add(sand_pos, Vec2.{-1,1});
@@ -1939,6 +1962,10 @@ day14_solve :: (input: string) -> int, int {
             if !spot_filled(*map, down) sand_pos = down;
             else if !spot_filled(*map, down_left) sand_pos = down_left;
             else if !spot_filled(*map, down_right) sand_pos = down_right;
+            else if sand_pos == spawn_pos {
+                assert(!part1);
+                return num_sands + 1;
+            }
             else {
                 table_set(*map, sand_pos, 1);
                 num_sands += 1;
@@ -1947,12 +1974,7 @@ day14_solve :: (input: string) -> int, int {
         }
     }
 
-    part1 := num_sands;
-    part2 := 0;
-
-    print("(debug) part1: %\n", part1);
-    print("(debug) part2: %\n", part2);
-    return part1, part2;
+    return num_sands;
 }
 
 #import "Basic";
