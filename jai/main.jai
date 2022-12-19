@@ -2165,32 +2165,6 @@ day15_solve :: (input: string, part1_row: int, part2_limit: int) -> int, u64 {
         }
     }
 
-/*
-    map : Table(Vec2, int, get_hash);
-    init(*map, sensors.count * 2);
-    for sensors table_set(*map, it, SENSOR);
-    for beacons table_set(*map, it, BEACON);
-
-    part1 := 0;
-    for x:min_x..max_x {
-        pos := make_vec2(x, test_row);
-        for idx:0..sensors.count - 1 {
-            sensor := sensors[idx];
-            radius := radii[idx];
-
-            dist := manhatten_length(subtract(pos, sensor));
-            if dist <= radius {
-                v, found := table_find(*map, pos);
-                if !found {
-                    //print("Available pos: %\n", pos);
-                    part1 += 1;
-                    break;
-                }
-            }
-        }
-    }
-*/
-
     return part1, part2;
 }
 
