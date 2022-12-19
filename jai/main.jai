@@ -2158,7 +2158,6 @@ day15_solve :: (input: string, part1_row: int, part2_limit: int) -> int, u64 {
                 hi := spans[idx+1];
                 x := lo.end + 1;
                 if x == (hi.start - 1) {
-                    print("found part2: %, %\n", x, row);
                     part2 = cast(u64)x * 4000000 + cast(u64)row;
                     break row;
                 }
