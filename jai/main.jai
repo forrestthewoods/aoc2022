@@ -1,4 +1,10 @@
 main :: () {
+    start_time := get_time();
+    defer {
+        elapsed := get_time() - start_time;
+        log("% ms elapsed.\n", elapsed * 1000);
+    }
+
     // day01();
     // day02();
     // day03();
@@ -15,6 +21,7 @@ main :: () {
     // day14();
     day15();
 }
+
 
 // --------------------------------------------------------
 // Utilities
@@ -2020,7 +2027,7 @@ day15_solve :: (input: string, test_row: int) -> int {
     
     // parse data
     sensors : [..]Vec2;
-    beacons : [..]Vec2;
+    beacons : Table(Vec2, int, get_hash);
     radii : [..]int;
 
     min_x := 1_000_000_000;
@@ -2038,7 +2045,7 @@ day15_solve :: (input: string, test_row: int) -> int {
         beacon := make_vec2(
             string_to_int(trim(parts[8], "x=,")),
             string_to_int(trim(parts[9], "y=,")));
-        array_add(*beacons, beacon);
+        table_set(*beacons, beacon, 1);
 
         array_add(*radii, manhatten_length(subtract(beacon, sensor)));
 
@@ -2046,51 +2053,95 @@ day15_solve :: (input: string, test_row: int) -> int {
         max_x = max(max_x, beacon.x);
     }
 
+    spans : [..]d15_span;
+
+    merge_spans :: (spans: *[..]d15_span, in_span: d15_span) {
+        new_span := in_span;
+        
+        idx := 0;
+        while idx < spans.count {
+            old_span := *spans.data[idx];
+
+            if new_span.end < old_span.start {
+                // new_span: |------|
+                // old_span:            |------|
+                array_insert_at(spans, new_span, idx);
+                return;
+            }
+            else if new_span.start >= old_span.start && new_span.end <= old_span.end {
+                // new_span:   |--|
+                // old_span: |------|
+                return;
+            } else if new_span.start <= old_span.start && new_span.end >= old_span.end {
+                // new_span: |------|
+                // old_span:   |--|
+                array_ordered_remove_by_index(spans, idx);
+            }
+            else if new_span.end <= old_span.end {
+                // new_span: |------|
+                // old_span:     |------|
+                old_span.start = new_span.start;
+                return;
+            }
+            else if new_span.start <= old_span.end {
+                // new_span:         |------|
+                // old_span:     |------|
+                new_span.start = old_span.start;
+                array_ordered_remove_by_index(spans, idx);
+            } else if  new_span.start > old_span.end {
+                // new_span:           |------|
+                // old_span: |------|
+                idx += 1;
+            } else {
+                assert(false);
+            }            
+        }
+
+        array_add(spans, new_span);
+    }
+
+    in_spans :: (spans: [..]d15_span, v: int) -> bool {
+        for span : spans {
+            if v >= span.start && v <= span.end {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Create "map" of spans
+    for idx: 0..sensors.count - 1 {
+        sensor := sensors[idx];
+        radius := radii[idx];
+
+        y_diff := Math.abs(sensor.y - test_row);
+        if y_diff <= radius {
+            x_rem := radius - y_diff;
+
+            new_span : d15_span;
+            new_span.start = sensor.x - x_rem;
+            new_span.end = sensor.x + x_rem;
+
+            merge_spans(*spans, new_span);
+        }
+    }
+
+    // Sum spans
+    part1 := 0;
+    for span : spans part1 += span.end - span.start + 1;
+    for beacons {
+        beacon := it_index;
+        if beacon.y == test_row && in_spans(spans, beacon.x) {
+            part1 -= 1;
+        }
+    }
+
+/*
     map : Table(Vec2, int, get_hash);
     init(*map, sensors.count * 2);
     for sensors table_set(*map, it, SENSOR);
     for beacons table_set(*map, it, BEACON);
 
-/*
-    // build a map
-    map : Table(Vec2, int, get_hash);
-
-    // init map
-    init(*map, 1);
-    for sensors table_set(*map, it, SENSOR);
-    for beacons table_set(*map, it, BEACON);
-
-    for idx: 0..sensors.count - 1 {
-        sensor := sensors[idx];
-        beacon := beacons[idx];
-
-        diff := subtract(beacon, sensor);
-        radius := manhatten_length(diff);
-
-        // be super lazy
-        for x:-radius..radius {
-            for y:-radius..radius {
-                pos := add(sensor, make_vec2(x,y));
-                d2 := manhatten_length(subtract(pos, sensor));
-                if d2 <= radius {
-                    v, filled := table_find(*map, pos);
-                    if !filled table_set(*map, pos, SCANNED);
-                }
-            }
-        }
-    }
-
-    // check scanned row
-    part1 := 0;
-    for map {
-        pos : Vec2 = it_index;
-        if pos.y == test_row {
-            v, success := table_find(*map, pos);
-            assert(success);
-            if v == SCANNED part1 += 1;
-        }
-    }
-*/
     part1 := 0;
     for x:min_x..max_x {
         pos := make_vec2(x, test_row);
@@ -2109,11 +2160,18 @@ day15_solve :: (input: string, test_row: int) -> int {
             }
         }
     }
+*/
 
     return part1;
 }
 
+d15_span :: struct {
+    start : int;
+    end : int;
+}
+
 #import "Basic";
+#import "Compiler";
 #import "Deep_Copy";
 #import "File";
 
