@@ -1997,29 +1997,27 @@ day15_test :: () {
     input, success := read_entire_file("data/day15_example.txt");
     assert(success);
 
-    part1 := day15_solve(input, 10);
-    print("(test) day15 part1: %\n", part1);
+    part1, part2 := day15_solve(input, 10, 20);
     assert(part1 == 26);
-
-    //part2 := day15_solve(input);
-    //print("(test) day15 part2: %\n", part1);
-    //assert(part2 == 93);
+    assert(part2 == 56000011);
 }
 
 day15_actual :: () {
     input, success := read_entire_file("data/day15.txt");
     assert(success);
 
-    part1 := day15_solve(input, 2000000);
+    part1, part2 := day15_solve(input, 2000000, 4000000);
     assert(part1 == 4879972);
+    assert(part2 == 12525726647448);
     print("day15 part1: %\n", part1);
+    print("day15 part2: %\n", part2);
 
     // part2 := day15_solve(input, false);
     // print("day15 part2: %\n", part2);
     // assert(part2 == 28594);
 }
 
-day15_solve :: (input: string, test_row: int) -> int {
+day15_solve :: (input: string, part1_row: int, part2_limit: int) -> int, u64 {
     // constants
     SENSOR : int : 1;
     BEACON : int : 2;
@@ -2100,6 +2098,30 @@ day15_solve :: (input: string, test_row: int) -> int {
         array_add(spans, new_span);
     }
 
+    build_spans :: (sensors: []Vec2, radii: []int, row: int) -> [..]d15_span {
+        spans : [..]d15_span;
+        
+        // Create "map" of spans
+        for idx: 0..sensors.count - 1 {
+            sensor := sensors[idx];
+            radius := radii[idx];
+
+            y_diff := Math.abs(sensor.y - row);
+            if y_diff <= radius {
+                x_rem := radius - y_diff;
+
+                new_span : d15_span;
+                new_span.start = sensor.x - x_rem;
+                new_span.end = sensor.x + x_rem;
+
+                merge_spans(*spans, new_span);
+            }
+        }
+
+        return spans;
+    }
+    
+
     in_spans :: (spans: [..]d15_span, v: int) -> bool {
         for span : spans {
             if v >= span.start && v <= span.end {
@@ -2109,30 +2131,38 @@ day15_solve :: (input: string, test_row: int) -> int {
         return false;
     }
 
-    // Create "map" of spans
-    for idx: 0..sensors.count - 1 {
-        sensor := sensors[idx];
-        radius := radii[idx];
+    part1 := 0;
+    {
+        spans := build_spans(sensors, radii, part1_row);
 
-        y_diff := Math.abs(sensor.y - test_row);
-        if y_diff <= radius {
-            x_rem := radius - y_diff;
-
-            new_span : d15_span;
-            new_span.start = sensor.x - x_rem;
-            new_span.end = sensor.x + x_rem;
-
-            merge_spans(*spans, new_span);
+        // Sum spans
+        for span : spans part1 += span.end - span.start + 1;
+        for beacons {
+            beacon := it_index;
+            if beacon.y == part1_row && in_spans(spans, beacon.x) {
+                part1 -= 1;
+            }
         }
     }
 
-    // Sum spans
-    part1 := 0;
-    for span : spans part1 += span.end - span.start + 1;
-    for beacons {
-        beacon := it_index;
-        if beacon.y == test_row && in_spans(spans, beacon.x) {
-            part1 -= 1;
+    part2 : u64 = 0;
+    {
+        for row: 0..part2_limit {
+            spans := build_spans(sensors, radii, row);
+
+            idx := 0;
+            while idx < spans.count - 1 {
+                defer idx += 1;
+
+                lo := spans[idx];
+                hi := spans[idx+1];
+                x := lo.end + 1;
+                if x == (hi.start - 1) {
+                    print("found part2: %, %\n", x, row);
+                    part2 = cast(u64)x * 4000000 + cast(u64)row;
+                    break row;
+                }
+            }
         }
     }
 
@@ -2162,7 +2192,7 @@ day15_solve :: (input: string, test_row: int) -> int {
     }
 */
 
-    return part1;
+    return part1, part2;
 }
 
 d15_span :: struct {
