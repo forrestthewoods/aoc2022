@@ -19,7 +19,8 @@ main :: () {
     // day12();
     // day13();
     // day14();
-    day15();
+    // day15();
+    day16();
 }
 
 
@@ -119,6 +120,14 @@ slice :: (s: string, start: s64) -> string {
     assert(start >= 0 && start < s.count);
     
     result := s;
+    result.data += start;
+    result.count -= start;
+    return result;
+}
+
+slice :: (arr: [] $T, start: s64) -> [] T {
+    assert(start < arr.count);
+    result := arr;
     result.data += start;
     result.count -= start;
     return result;
@@ -2172,6 +2181,108 @@ d15_span :: struct {
     start : int;
     end : int;
 }
+
+// --------------------------------------------------------
+// Day 16
+// --------------------------------------------------------
+day16 :: () {
+    day16_test();
+    //day16_actual();
+}
+
+day16_test :: () {
+    input, success := read_entire_file("data/day16_example.txt");
+    assert(success);
+
+    part1 := day16_solve(input);
+}
+
+day16_actual :: () {
+    input, success := read_entire_file("data/day16.txt");
+    assert(success);
+
+    part1 := day16_solve(input);
+    print("day16 part1: %\n", part1);
+}
+
+day16_solve :: (input: string) -> int {
+
+    // parse input
+    graph : Table(string, d16_room);
+    for line : split(input, "\r\n") {
+        parts := split(line, " ");
+
+        new_room : d16_room;
+        
+        new_room.name = parts[1];
+        new_room.rate = string_to_int(trim(parts[4], "rate=;"));
+        
+        tunnels_parts := slice(parts, 9);
+        for tunnel_part : tunnels_parts {
+            tunnel := trim(tunnel_part, ",");
+            array_add(*new_room.tunnels, tunnel);
+        }
+
+        table_set(*graph, new_room.name, new_room);
+    }
+
+    // helpers
+    spot_filled :: (t: *Table, k: Vec2) -> bool {
+        value, success := table_find(t, k);
+        return success;
+    }
+
+    // initialize search
+    visited : Table(d16_search_state, int, get_hash_d16_search_state);
+    open_list : [..]d16_search_state;
+    array_add(*open_list, d16_search_state.{});
+
+    // perform exhaustive search
+    while open_list.count > 0 {
+        cur_state := pop(*open_list);
+
+        // don't repeat visits
+        _, found := table_find(*visited, cur_state);
+        if found continue;
+
+        
+    }
+
+    part1 := 0;
+    print("(debug) day16 part1: %\n", part1);
+    return 0;
+}
+
+d16_room :: struct {
+    name : string;
+    rate : int;
+    tunnels : [..]string;
+}
+
+d16_search_state :: struct {
+    released_pressure : int;
+    cur_room : string = "AA";
+    time_left : int = 30;
+    opened_valves : [..]string;
+}
+
+operator == :: (a: d16_search_state, b: d16_search_state) -> bool {
+    return a.released_pressure == b.released_pressure
+        && a.cur_room == b.cur_room
+        && a.time_left == b.time_left
+        && a.opened_valves == b.opened_valves;
+}
+
+get_hash_d16_search_state :: (v: d16_search_state) -> u32 {
+    Hash :: #import "Hash";
+    result : u32 = hash_combine(
+        Hash.get_hash(v.released_pressure), 
+        Hash.get_hash(v.cur_room));
+    result = hash_combine(result, Hash.get_hash(v.time_left));
+    for valve : v.opened_valves result = hash_combine(result, Hash.get_hash(valve));
+    return result;
+}
+
 
 #import "Basic";
 #import "Compiler";
