@@ -2232,6 +2232,17 @@ day16_solve :: (input: string) -> int {
         return success;
     }
 
+    is_valve_opened :: (state: *d16_search_state, valve: string) -> bool {
+        for open_valve : state.opened_valves if open_valve == valve return true;
+        return false; 
+    }
+
+    clone_state :: (state: *d16_search_state) -> d16_search_state {
+        new_state : d16_search_state = state;
+        array_copy(*new_state.opened_valves, new_state.opened_valves);
+        return new_state;
+    }
+
     // initialize search
     visited : Table(d16_search_state, int, get_hash_d16_search_state);
     open_list : [..]d16_search_state;
@@ -2244,11 +2255,38 @@ day16_solve :: (input: string) -> int {
         // don't repeat visits
         _, found := table_find(*visited, cur_state);
         if found continue;
+        table_set(*visited, cur_state, 0);
 
-        
+        // out of time
+        if cur_state.time_left <= 0 continue;
+
+        cur_room, success := table_find(*graph, cur_state.cur_room);
+        assert(success);
+
+        if cur_room.rate > 0 && !is_valve_opened(*cur_state, cur_state.cur_room) {
+            // open valve in current room
+            new_state := clone_state(*cur_state);
+            array_add(*new_state.opened_valves, cur_state.cur_room);
+            new_state.time_left -= 1;
+            new_state.released_pressure += new_state.time_left * cur_room.rate;
+            
+            array_add(*open_list, new_state);
+        } 
+
+        // visit neighbor rooms
+        for neighbor : cur_room.tunnels {
+            new_state := clone_state(*cur_state);
+            new_state.cur_room = neighbor;
+            new_state.time_left -= 1;
+            array_add(*open_list, new_state);
+        }
+
     }
 
+    // find most pressure in visited
     part1 := 0;
+    for visited part1 = max(part1, it_index.released_pressure);
+
     print("(debug) day16 part1: %\n", part1);
     return 0;
 }
