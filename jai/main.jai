@@ -2194,7 +2194,7 @@ day16_test :: () {
     input, success := read_entire_file("data/day16_example.txt");
     assert(success);
 
-    part1 := day16_solve(input);
+    assert(day16_solve(input) == 1651);
 }
 
 day16_actual :: () {
@@ -2202,6 +2202,7 @@ day16_actual :: () {
     assert(success);
 
     part1 := day16_solve(input);
+    assert(part1 == 1845);
     print("day16 part1: %\n", part1);
 }
 
@@ -2253,7 +2254,22 @@ day16_solve :: (input: string) -> int {
 
         // explore the whole thing
         while open_list.count > 0 {
-            cur_state := pop(*open_list);
+            // find lowest
+            lowest_cost := 100000;
+            best_idx := 0;
+
+            for *open_list {
+                if it.cost < lowest_cost {
+                    lowest_cost = it.cost;
+                    best_idx = it_index;
+                }
+            }
+
+            cur_state := open_list[best_idx];
+            array_unordered_remove_by_index(*open_list, best_idx);
+
+            //cur_state := pop(*open_list);
+
             graph_room : *d16_room = table_find_pointer(*graph, cur_state.room);
             
             // process each neighbor
@@ -2339,7 +2355,7 @@ day16_solve :: (input: string) -> int {
 
             new_state.solution_path = tprint("% %", cur_state.solution_path, neighbor);
 
-            new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] total_release: [%]\n", cur_state.debug_moves, neighbor, 30 - new_state.time_left, new_state.time_left, pressure_to_release);
+            new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%]  sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - new_state.time_left, new_state.time_left, pressure_to_release, new_state.released_pressure);
 
             // see if any visited state is "better" than new_state
             found_better := false;
@@ -2355,6 +2371,7 @@ day16_solve :: (input: string) -> int {
                     }
 
                     //print("not pursuing %\n", new_state.solution_path);
+                    // TODO: this does not consider POTENTIAL of unopened valves
                     found_better = false;
                     break;
                 }
@@ -2379,6 +2396,7 @@ day16_solve :: (input: string) -> int {
 
     // 1607 too low
     // 1700 too low
+    // 1799 wrong but unknown
     // 1935 too high
     print("(debug) moves: \n%\n", full_list[best_idx].debug_moves);
     print("(debug) path: %\n", full_list[best_idx].solution_path);
