@@ -2187,7 +2187,7 @@ d15_span :: struct {
 // --------------------------------------------------------
 day16 :: () {
     day16_test();
-    //day16_actual();
+    day16_actual();
 }
 
 day16_test :: () {
@@ -2234,7 +2234,7 @@ day16_solve :: (input: string) -> int {
     // BFS from each source to find paths between valves
     for *graph {
         init_room : *d16_room = it;
-        print("bfs for %\n", init_room.name);
+        //print("bfs for %\n", init_room.name);
         
         // help struct for search state
         bfs_state :: struct {
@@ -2273,7 +2273,7 @@ day16_solve :: (input: string) -> int {
                 assert(success);
                 if neighbor_room.rate > 0 {
                     table_set(*init_room.paths, neighbor, new_state.cost);
-                    print("    dst: %  cost: %  room: %  table: %\n", neighbor, new_state.cost, graph_room.name, *graph_room.paths);
+                    //print("    dst: %  cost: %  room: %  table: %\n", neighbor, new_state.cost, graph_room.name, *graph_room.paths);
                 }
 
                 array_add(*open_list, new_state);
@@ -2283,20 +2283,16 @@ day16_solve :: (input: string) -> int {
 
     for *graph {
         room: *d16_room = it;
-        print("room %\n", room.name);
-        print("    tunnels\n");
-        for room.tunnels print("        %\n", it);
-        print("    paths\n");
+        //print("room %\n", room.name);
+        //print("    tunnels\n");
+        //for room.tunnels print("        %\n", it);
+        //print("    paths\n");
         for room.paths {
             r : string = it_index;
             c : int = it;
-            print("        % - %\n", r, c);
+            //print("        % - %\n", r, c);
         }
     }
-
-    // DEBUG
-    bb : *d16_room = table_find_pointer(*graph, "BB");
-    assert(bb != null);
 
     // bfs to find best rate
     full_list : [..]d16_search_state;
@@ -2338,13 +2334,15 @@ day16_solve :: (input: string) -> int {
             new_state.cur_room = neighbor;
             new_state.time_left = cur_state.time_left - cost_to_open;
             new_state.opened_valves = cur_state.opened_valves | neighbor_room.mask;
-            new_state.released_pressure = cur_state.released_pressure + neighbor_room.rate * (new_state.time_left - 1);
+            
+            pressure_to_release := neighbor_room.rate * new_state.time_left;
+            new_state.released_pressure = cur_state.released_pressure + pressure_to_release;
 
             // see if any visited state is "better" than new_state
             found_better := false;
             for *prev_state : full_list {
                 if prev_state.released_pressure >= new_state.released_pressure
-                    && prev_state.time_left <= new_state.released_pressure
+                    && prev_state.time_left >= new_state.released_pressure
                     && (prev_state.opened_valves & new_state.opened_valves) == new_state.opened_valves
                 {
                     //found_better = true;
@@ -2353,7 +2351,7 @@ day16_solve :: (input: string) -> int {
             } 
 
             if !found_better {
-                new_state.debug_moves = tprint("%opened [%]. time left: [%]\n", cur_state.debug_moves, neighbor, new_state.time_left);
+                new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] total_release: [%]\n", cur_state.debug_moves, neighbor, 30 - new_state.time_left, new_state.time_left, pressure_to_release);
 
                 array_add(*open_list, new_state);
                 array_add(*full_list, new_state);
@@ -2371,9 +2369,10 @@ day16_solve :: (input: string) -> int {
         }
      } 
 
-    print("(debug): \n%\n", full_list[best_idx].debug_moves);
+    // 1607 too low
+    print("\n\n\n(debug): \n%\n", full_list[best_idx].debug_moves);
     print("(debug) day16 part1: %\n", part1);
-    return 0;
+    return part1;
 }
 
 d16_room :: struct {
