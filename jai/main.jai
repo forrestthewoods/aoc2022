@@ -2232,8 +2232,8 @@ day16_solve :: (input: string) -> int {
 
 
     // BFS from each source to find paths between valves
-    for graph {
-        init_room : *d16_room = *it;
+    for *graph {
+        init_room : *d16_room = it;
         print("bfs for %\n", init_room.name);
         
         // help struct for search state
@@ -2254,7 +2254,7 @@ day16_solve :: (input: string) -> int {
         // explore the whole thing
         while open_list.count > 0 {
             cur_state := pop(*open_list);
-            graph_room := table_find_pointer(*graph, cur_state.room);
+            graph_room : *d16_room = table_find_pointer(*graph, cur_state.room);
             
             // process each neighbor
             for neighbor : graph_room.tunnels {
@@ -2272,14 +2272,31 @@ day16_solve :: (input: string) -> int {
                 neighbor_room, success := table_find(*graph, neighbor);
                 assert(success);
                 if neighbor_room.rate > 0 {
-                    table_set(*graph_room.paths, neighbor, new_state.cost);
-                    print("    dst: %  cost: %\n", neighbor, new_state.cost);
+                    table_set(*init_room.paths, neighbor, new_state.cost);
+                    print("    dst: %  cost: %  room: %  table: %\n", neighbor, new_state.cost, graph_room.name, *graph_room.paths);
                 }
 
                 array_add(*open_list, new_state);
             }
         }
     }
+
+    for *graph {
+        room: *d16_room = it;
+        print("room %\n", room.name);
+        print("    tunnels\n");
+        for room.tunnels print("        %\n", it);
+        print("    paths\n");
+        for room.paths {
+            r : string = it_index;
+            c : int = it;
+            print("        % - %\n", r, c);
+        }
+    }
+
+    // DEBUG
+    bb : *d16_room = table_find_pointer(*graph, "BB");
+    assert(bb != null);
 
     // bfs to find best rate
     full_list : [..]d16_search_state;
@@ -2344,71 +2361,6 @@ day16_solve :: (input: string) -> int {
         }
     }
 
-/*
-
-    // helpers
-    spot_filled :: (t: *Table, k: Vec2) -> bool {
-        value, success := table_find(t, k);
-        return success;
-    }
-
-    is_valve_opened :: (state: *d16_search_state, valve: string) -> bool {
-        for open_valve : state.opened_valves if open_valve == valve return true;
-        return false; 
-    }
-
-    clone_state :: (state: *d16_search_state) -> d16_search_state {
-        new_state : d16_search_state = state;
-        array_copy(*new_state.opened_valves, new_state.opened_valves);
-        return new_state;
-    }
-
-    num_useful_valves := 0;
-    for graph if it.rate > 0 num_useful_valves += 1;
-
-    // initialize search
-    visited : Table(d16_search_state, int, get_hash_d16_search_state);
-    open_list : [..]d16_search_state;
-    array_add(*open_list, d16_search_state.{});
-
-    // perform exhaustive search
-    while open_list.count > 0 {
-        cur_state := pop(*open_list);
-
-        // don't repeat visits
-        _, found := table_find(*visited, cur_state);
-        if found continue;
-        table_set(*visited, cur_state, 0);
-
-        // All valves open, no reason to do anything
-        if cur_state.opened_valves.count == num_useful_valves continue;
-
-        // out of time
-        if cur_state.time_left <= 0 continue;
-
-        cur_room, success := table_find(*graph, cur_state.cur_room);
-        assert(success);
-
-        if cur_room.rate > 0 && !is_valve_opened(*cur_state, cur_state.cur_room) {
-            // open valve in current room
-            new_state := clone_state(*cur_state);
-            array_add(*new_state.opened_valves, cur_state.cur_room);
-            new_state.time_left -= 1;
-            new_state.released_pressure += new_state.time_left * cur_room.rate;
-            
-            array_add(*open_list, new_state);
-        } 
-
-        // visit neighbor rooms
-        for neighbor : cur_room.tunnels {
-            new_state := clone_state(*cur_state);
-            new_state.cur_room = neighbor;
-            new_state.time_left -= 1;
-            array_add(*open_list, new_state);
-        }
-
-    }
-*/
     // find most pressure in visited
     part1 := 0;
     best_idx := 0;
