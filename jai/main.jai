@@ -2326,8 +2326,7 @@ day16_solve :: (input: string) -> int {
 
             // don't open if there's not enough time to move, open, and release
             cost_to_open := neighbor_cost + 1;
-            cost_to_open_and_vent := cost_to_open + 1;
-            if cur_state.time_left < cost_to_open_and_vent continue;
+            if cur_state.time_left <= cost_to_open continue;
 
             // potential new state
             new_state : d16_search_state;
@@ -2338,21 +2337,30 @@ day16_solve :: (input: string) -> int {
             pressure_to_release := neighbor_room.rate * new_state.time_left;
             new_state.released_pressure = cur_state.released_pressure + pressure_to_release;
 
+            new_state.solution_path = tprint("% %", cur_state.solution_path, neighbor);
+
+            new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] total_release: [%]\n", cur_state.debug_moves, neighbor, 30 - new_state.time_left, new_state.time_left, pressure_to_release);
+
             // see if any visited state is "better" than new_state
             found_better := false;
             for *prev_state : full_list {
-                if prev_state.released_pressure >= new_state.released_pressure
-                    && prev_state.time_left >= new_state.released_pressure
+                if prev_state.cur_room == new_state.cur_room
+                    && prev_state.released_pressure >= new_state.released_pressure
+                    && prev_state.time_left >= new_state.time_left
                     && (prev_state.opened_valves & new_state.opened_valves) == new_state.opened_valves
                 {
-                    //found_better = true;
+                    if new_state.solution_path == " DD BB JJ HH" {
+                        x := 5;
+                        x += 3;
+                    }
+
+                    //print("not pursuing %\n", new_state.solution_path);
+                    found_better = false;
                     break;
                 }
             } 
 
             if !found_better {
-                new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] total_release: [%]\n", cur_state.debug_moves, neighbor, 30 - new_state.time_left, new_state.time_left, pressure_to_release);
-
                 array_add(*open_list, new_state);
                 array_add(*full_list, new_state);
             }
@@ -2370,8 +2378,11 @@ day16_solve :: (input: string) -> int {
      } 
 
     // 1607 too low
-    print("\n\n\n(debug): \n%\n", full_list[best_idx].debug_moves);
-    print("(debug) day16 part1: %\n", part1);
+    // 1700 too low
+    // 1935 too high
+    print("(debug) moves: \n%\n", full_list[best_idx].debug_moves);
+    print("(debug) path: %\n", full_list[best_idx].solution_path);
+    print("(debug) day16 part1: %\n\n\n", part1);
     return part1;
 }
 
@@ -2389,6 +2400,7 @@ d16_search_state :: struct {
     time_left : int = 30;
     opened_valves : u64;
     debug_moves: string;
+    solution_path: string;
 }
 
 operator == :: (a: d16_search_state, b: d16_search_state) -> bool {
