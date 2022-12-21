@@ -2226,6 +2226,61 @@ day16_solve :: (input: string) -> int {
         table_set(*graph, new_room.name, new_room);
     }
 
+    // BFS from each source to find shortest path to non-zero valves
+    for graph {
+        init_room : *d16_room = *it;
+        print("bfs for %\n", init_room.name);
+        
+        // help struct for search state
+        bfs_state :: struct {
+            room : string;
+            cost : int;
+        }
+
+        // initialize BFS search structs
+        visited : Table(string, int);
+        open_list : [..]bfs_state;
+
+        init_state : bfs_state;
+        init_state.room = init_room.name;
+        array_add(*open_list, init_state);
+        table_set(*visited, init_room.name, 0);
+
+        // explore the whole thing
+        while open_list.count > 0 {
+            cur_state := pop(*open_list);
+            graph_room := table_find_pointer(*graph, cur_state.room);
+            
+            // process each neighbor
+            for neighbor : graph_room.tunnels {
+                // don't visit rooms twice
+                _, already_visited := table_find(*visited, neighbor);
+                if already_visited continue;
+                table_set(*visited, neighbor, 0);
+
+                // create new state
+                new_state : bfs_state;
+                new_state.room = neighbor;
+                new_state.cost = cur_state.cost + 1;
+
+                // store paths to rooms with rate > 0
+                neighbor_room, success := table_find(*graph, neighbor);
+                assert(success);
+                if neighbor_room.rate > 0 {
+                    table_set(*graph_room.paths, neighbor, new_state.cost);
+                    print("    dst: %  cost: %\n", neighbor, new_state.cost);
+                }
+
+                array_add(*open_list, new_state);
+            }
+        }
+    }
+
+
+    return 0;
+
+
+
     // helpers
     spot_filled :: (t: *Table, k: Vec2) -> bool {
         value, success := table_find(t, k);
@@ -2243,6 +2298,9 @@ day16_solve :: (input: string) -> int {
         return new_state;
     }
 
+    num_useful_valves := 0;
+    for graph if it.rate > 0 num_useful_valves += 1;
+
     // initialize search
     visited : Table(d16_search_state, int, get_hash_d16_search_state);
     open_list : [..]d16_search_state;
@@ -2256,6 +2314,9 @@ day16_solve :: (input: string) -> int {
         _, found := table_find(*visited, cur_state);
         if found continue;
         table_set(*visited, cur_state, 0);
+
+        // All valves open, no reason to do anything
+        if cur_state.opened_valves.count == num_useful_valves continue;
 
         // out of time
         if cur_state.time_left <= 0 continue;
@@ -2295,6 +2356,7 @@ d16_room :: struct {
     name : string;
     rate : int;
     tunnels : [..]string;
+    paths : Table(string, int);
 }
 
 d16_search_state :: struct {
