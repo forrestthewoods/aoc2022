@@ -2207,6 +2207,8 @@ day16_actual :: () {
 
 day16_solve :: (input: string) -> int {
 
+    room_to_mask : Table(string, u64);
+
     // parse input
     graph : Table(string, d16_room);
     for line : split(input, "\r\n") {
@@ -2215,6 +2217,7 @@ day16_solve :: (input: string) -> int {
         new_room : d16_room;
         
         new_room.name = parts[1];
+        new_room.mask = cast(u64)1 << room_to_mask.count;
         new_room.rate = string_to_int(trim(parts[4], "rate=;"));
         
         tunnels_parts := slice(parts, 9);
@@ -2223,10 +2226,12 @@ day16_solve :: (input: string) -> int {
             array_add(*new_room.tunnels, tunnel);
         }
 
+        table_set(*room_to_mask, new_room.name, new_room.mask);
         table_set(*graph, new_room.name, new_room);
     }
 
-    // BFS from each source to find shortest path to non-zero valves
+
+    // BFS from each source to find paths between valves
     for graph {
         init_room : *d16_room = *it;
         print("bfs for %\n", init_room.name);
@@ -2276,10 +2281,70 @@ day16_solve :: (input: string) -> int {
         }
     }
 
+    // bfs to find best rate
+    full_list : [..]d16_search_state;
+    open_list : [..]d16_search_state;
+    
+    init_state : d16_search_state;
+    array_add(*full_list, d16_search_state.{});
+    array_add(*open_list, d16_search_state.{});
 
-    return 0;
+    // full traversal
+    while open_list.count > 0 {
+        // get current room
+        cur_state := pop(*open_list);
+        assert(cur_state.time_left > 0);
 
+        cur_room := table_find_pointer(*graph, cur_state.cur_room);
+        assert(cur_room != null);
 
+        // consider each other valve
+        for cur_room.paths {
+            // get neighbor info
+            neighbor : string = it_index;
+            neighbor_cost : int = it;
+
+            neighbor_room := table_find_pointer(*graph, neighbor);
+            assert(neighbor_room != null);
+            assert(neighbor_room.rate > 0);
+
+            // don't open valves multiple times
+            if cur_state.opened_valves & neighbor_room.mask > 0 continue;
+
+            // don't open if there's not enough time to move, open, and release
+            cost_to_open := neighbor_cost + 1;
+            cost_to_open_and_vent := cost_to_open + 1;
+            if cur_state.time_left < cost_to_open_and_vent continue;
+
+            // potential new state
+            new_state : d16_search_state;
+            new_state.cur_room = neighbor;
+            new_state.time_left = cur_state.time_left - cost_to_open;
+            new_state.opened_valves = cur_state.opened_valves | neighbor_room.mask;
+            new_state.released_pressure = cur_state.released_pressure + neighbor_room.rate * (new_state.time_left - 1);
+
+            // see if any visited state is "better" than new_state
+            found_better := false;
+            for *prev_state : full_list {
+                if prev_state.released_pressure >= new_state.released_pressure
+                    && prev_state.time_left <= new_state.released_pressure
+                    && (prev_state.opened_valves & new_state.opened_valves) == new_state.opened_valves
+                {
+                    //found_better = true;
+                    break;
+                }
+            } 
+
+            if !found_better {
+                new_state.debug_moves = tprint("%opened [%]. time left: [%]\n", cur_state.debug_moves, neighbor, new_state.time_left);
+
+                array_add(*open_list, new_state);
+                array_add(*full_list, new_state);
+            }
+        }
+    }
+
+/*
 
     // helpers
     spot_filled :: (t: *Table, k: Vec2) -> bool {
@@ -2343,17 +2408,25 @@ day16_solve :: (input: string) -> int {
         }
 
     }
-
+*/
     // find most pressure in visited
     part1 := 0;
-    for visited part1 = max(part1, it_index.released_pressure);
+    best_idx := 0;
+    for full_list {
+        if it.released_pressure > part1 {
+            part1 = it.released_pressure;
+            best_idx = it_index;
+        }
+     } 
 
+    print("(debug): \n%\n", full_list[best_idx].debug_moves);
     print("(debug) day16 part1: %\n", part1);
     return 0;
 }
 
 d16_room :: struct {
     name : string;
+    mask : u64;
     rate : int;
     tunnels : [..]string;
     paths : Table(string, int);
@@ -2363,7 +2436,8 @@ d16_search_state :: struct {
     released_pressure : int;
     cur_room : string = "AA";
     time_left : int = 30;
-    opened_valves : [..]string;
+    opened_valves : u64;
+    debug_moves: string;
 }
 
 operator == :: (a: d16_search_state, b: d16_search_state) -> bool {
@@ -2379,7 +2453,7 @@ get_hash_d16_search_state :: (v: d16_search_state) -> u32 {
         Hash.get_hash(v.released_pressure), 
         Hash.get_hash(v.cur_room));
     result = hash_combine(result, Hash.get_hash(v.time_left));
-    for valve : v.opened_valves result = hash_combine(result, Hash.get_hash(valve));
+    result = hash_combine(result, Hash.get_hash(v.opened_valves));
     return result;
 }
 
