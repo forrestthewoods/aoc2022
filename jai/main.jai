@@ -2194,8 +2194,8 @@ day16_test :: () {
     input, success := read_entire_file("data/day16_example.txt");
     assert(success);
 
-    //assert(day16_solve(input, true) == 1651);
-    assert(day16_solve(input, false) == 1707);
+    assert(day16_solve(input, true) == 1651);
+    //assert(day16_solve(input, false) == 1707);
 }
 
 day16_actual :: () {
@@ -2207,7 +2207,7 @@ day16_actual :: () {
     print("day16 part1: %\n", part1);
 }
 
-day16_solve :: (input: string, is_part1: bool) -> int {
+day16_solve :: (input: string, part1: bool) -> int {
 
     room_to_mask : Table(string, u64);
 
@@ -2317,8 +2317,16 @@ day16_solve :: (input: string, is_part1: bool) -> int {
     
     init_state : d16_search_state;
 
+    if part1 {
+        array_add(*init_state.substates, d16_search_substate.{});
+    } else {
+        s : d16_search_state;
+        s.time_left = 26;
+        array_add(*init_state.substates, s);
+        array_add(*init_state.substates, s);
+    }
+
     // part2 start with less time
-    if !is_part1 init_state.time_left = 26;
 
     array_add(*full_list, d16_search_state.{});
     array_add(*open_list, d16_search_state.{});
@@ -2327,92 +2335,87 @@ day16_solve :: (input: string, is_part1: bool) -> int {
     while open_list.count > 0 {
         // get current room
         cur_state := pop(*open_list);
-        assert(cur_state.time_left > 0);
+        
+        substate_idx = 0;
+        while substate_idx < cur_state.substates.count {
+            substate := *cur_state.substates[substate_idx];
+            if substate.time_left <= 0 continue;
 
-        cur_room := table_find_pointer(*graph, cur_state.cur_room);
-        assert(cur_room != null);
+            cur_room := table_find_pointer(*graph, substate.cur_room);
+            assert(cur_room != null);
 
-        // consider each other valve
-        found_path := false;
-        for cur_room.paths {
-            // get neighbor info
-            neighbor : string = it_index;
-            neighbor_cost : int = it;
+            // consider each other valve
+            for cur_room.paths {
+                // get neighbor info
+                neighbor : string = it_index;
+                neighbor_cost : int = it;
 
-            neighbor_room := table_find_pointer(*graph, neighbor);
-            assert(neighbor_room != null);
-            assert(neighbor_room.rate > 0);
+                neighbor_room := table_find_pointer(*graph, neighbor);
+                assert(neighbor_room != null);
+                assert(neighbor_room.rate > 0);
 
-            // don't open valves multiple times
-            if cur_state.opened_valves & neighbor_room.mask > 0 continue;
+                // don't open valves multiple times
+                if cur_state.opened_valves & neighbor_room.mask > 0 continue;
 
-            // don't open if there's not enough time to move, open, and release
-            cost_to_open := neighbor_cost + 1;
-            if cur_state.time_left <= cost_to_open continue;
+                // don't open if there's not enough time to move, open, and release
+                cost_to_open := neighbor_cost + 1;
+                if cur_state.time_left <= cost_to_open continue;
 
-            // potential new state
-            new_state : d16_search_state;
-            new_state.cur_room = neighbor;
-            new_state.time_left = cur_state.time_left - cost_to_open;
-            new_state.opened_valves = cur_state.opened_valves | neighbor_room.mask;
-            
-            pressure_to_release := neighbor_room.rate * new_state.time_left;
-            new_state.released_pressure = cur_state.released_pressure + pressure_to_release;
+                // potential new state
+                new_state : d16_search_state;
+                new_state.cur_room = neighbor;
+                new_state.time_left = cur_state.time_left - cost_to_open;
+                new_state.opened_valves = cur_state.opened_valves | neighbor_room.mask;
+                
+                pressure_to_release := neighbor_room.rate * new_state.time_left;
+                new_state.released_pressure = cur_state.released_pressure + pressure_to_release;
 
-            new_state.solution_path = tprint("% %", cur_state.solution_path, neighbor);
+                new_state.solution_path = tprint("% %", cur_state.solution_path, neighbor);
 
-            new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%]  sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - new_state.time_left, new_state.time_left, pressure_to_release, new_state.released_pressure);
+                new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%]  sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - new_state.time_left, new_state.time_left, pressure_to_release, new_state.released_pressure);
 
-            // see if any visited state is "better" than new_state
-            found_better := false;
-            for *prev_state : full_list {
-                if prev_state.cur_room == new_state.cur_room
-                    && prev_state.released_pressure >= new_state.released_pressure
-                    && prev_state.time_left >= new_state.time_left
-                    && (prev_state.opened_valves & new_state.opened_valves) == new_state.opened_valves
-                {
-                    if new_state.solution_path == " DD BB JJ HH" {
-                        x := 5;
-                        x += 3;
+                // see if any visited state is "better" than new_state
+                found_better := false;
+                for *prev_state : full_list {
+                    if prev_state.cur_room == new_state.cur_room
+                        && prev_state.released_pressure >= new_state.released_pressure
+                        && prev_state.time_left >= new_state.time_left
+                        && (prev_state.opened_valves & new_state.opened_valves) == new_state.opened_valves
+                    {
+                        if new_state.solution_path == " DD BB JJ HH" {
+                            x := 5;
+                            x += 3;
+                        }
+
+                        //print("not pursuing %\n", new_state.solution_path);
+                        // TODO: this does not consider POTENTIAL of unopened valves
+                        found_better = false;
+                        break;
                     }
+                } 
 
-                    //print("not pursuing %\n", new_state.solution_path);
-                    // TODO: this does not consider POTENTIAL of unopened valves
-                    found_better = false;
-                    break;
+                if !found_better {
+                    array_add(*open_list, new_state);
+                    array_add(*full_list, new_state);
                 }
-            } 
-
-            if !found_better {
-                found_path = true;
-                array_add(*open_list, new_state);
-                array_add(*full_list, new_state);
             }
-        }
-
-        // can't follow this trail any further, start the second pass
-        if !found_path && cur_state.first_pass {
-            new_state : d16_search_state = cur_state;
-            new_state.time_left = 26;
-            new_state.cur_room = "AA";
-            new_state.first_pass = false;
         }
     }
 
     // find most pressure in visited
-    part1 := 0;
+    answer := 0;
     best_idx := 0;
     for full_list {
-        if it.released_pressure > part1 {
-            part1 = it.released_pressure;
+        if it.released_pressure > answer {
+            answer = it.released_pressure;
             best_idx = it_index;
         }
      } 
 
     print("(debug) moves: \n%\n", full_list[best_idx].debug_moves);
     print("(debug) path: %\n", full_list[best_idx].solution_path);
-    print("(debug) day16 partX: %\n\n\n", part1);
-    return part1;
+    print("(debug) day16 partX: %\n\n\n", answer);
+    return answer;
 }
 
 d16_room :: struct {
@@ -2425,12 +2428,15 @@ d16_room :: struct {
 
 d16_search_state :: struct {
     released_pressure : int;
-    cur_room : string = "AA";
-    time_left : int = 30;
     opened_valves : u64;
     debug_moves: string;
     solution_path: string;
-    first_pass : bool = true;
+    substates : [..]d16_search_substate;
+}
+
+d16_search_substate :: struct {
+    cur_room : string = "AA";
+    time_left : int = 30;
 }
 
 operator == :: (a: d16_search_state, b: d16_search_state) -> bool {
