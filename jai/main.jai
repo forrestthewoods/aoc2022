@@ -2187,7 +2187,7 @@ d15_span :: struct {
 // --------------------------------------------------------
 day16 :: () {
     day16_test();
-    //day16_actual();
+    day16_actual();
 }
 
 day16_test :: () {
@@ -2195,7 +2195,7 @@ day16_test :: () {
     assert(success);
 
     assert(day16_solve(input, true) == 1651);
-    //assert(day16_solve(input, false) == 1707);
+    assert(day16_solve(input, false) == 1707);
 }
 
 day16_actual :: () {
@@ -2205,6 +2205,9 @@ day16_actual :: () {
     part1 := day16_solve(input, true);
     assert(part1 == 1845);
     print("day16 part1: %\n", part1);
+
+    part2 := day16_solve(input, false);
+    print("day16 part2: %\n", part2);
 }
 
 day16_solve :: (input: string, part1: bool) -> int {
@@ -2320,7 +2323,7 @@ day16_solve :: (input: string, part1: bool) -> int {
     if part1 {
         array_add(*init_state.substates, d16_search_substate.{});
     } else {
-        s : d16_search_state;
+        s : d16_search_substate;
         s.time_left = 26;
         array_add(*init_state.substates, s);
         array_add(*init_state.substates, s);
@@ -2328,20 +2331,22 @@ day16_solve :: (input: string, part1: bool) -> int {
 
     // part2 start with less time
 
-    array_add(*full_list, d16_search_state.{});
-    array_add(*open_list, d16_search_state.{});
+    array_add(*full_list, init_state);
+    array_add(*open_list, init_state);
 
     // full traversal
     while open_list.count > 0 {
         // get current room
         cur_state := pop(*open_list);
         
-        substate_idx = 0;
+        substate_idx := 0;
         while substate_idx < cur_state.substates.count {
-            substate := *cur_state.substates[substate_idx];
-            if substate.time_left <= 0 continue;
+            defer substate_idx += 1;
 
-            cur_room := table_find_pointer(*graph, substate.cur_room);
+            cur_substate := *cur_state.substates[substate_idx];
+            if cur_substate.time_left <= 0 continue;
+
+            cur_room := table_find_pointer(*graph, cur_substate.cur_room);
             assert(cur_room != null);
 
             // consider each other valve
@@ -2359,28 +2364,39 @@ day16_solve :: (input: string, part1: bool) -> int {
 
                 // don't open if there's not enough time to move, open, and release
                 cost_to_open := neighbor_cost + 1;
-                if cur_state.time_left <= cost_to_open continue;
+                if cur_substate.time_left <= cost_to_open continue;
 
                 // potential new state
-                new_state : d16_search_state;
-                new_state.cur_room = neighbor;
-                new_state.time_left = cur_state.time_left - cost_to_open;
+                new_state : d16_search_state = d16_clone(*cur_state);
+                new_substate : *d16_search_substate = *new_state.substates[substate_idx];
+                new_substate.cur_room = neighbor;
+                new_substate.time_left = cur_substate.time_left - cost_to_open;
                 new_state.opened_valves = cur_state.opened_valves | neighbor_room.mask;
                 
-                pressure_to_release := neighbor_room.rate * new_state.time_left;
+                pressure_to_release := neighbor_room.rate * new_substate.time_left;
                 new_state.released_pressure = cur_state.released_pressure + pressure_to_release;
 
-                new_state.solution_path = tprint("% %", cur_state.solution_path, neighbor);
+                new_state.solution_path = tprint("% %(%)", cur_state.solution_path, neighbor, substate_idx);
 
-                new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%]  sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - new_state.time_left, new_state.time_left, pressure_to_release, new_state.released_pressure);
+                new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%] substate: [%] sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - cur_substate.time_left, new_substate.time_left, pressure_to_release, substate_idx, new_state.released_pressure);
 
                 // see if any visited state is "better" than new_state
                 found_better := false;
                 for *prev_state : full_list {
-                    if prev_state.cur_room == new_state.cur_room
-                        && prev_state.released_pressure >= new_state.released_pressure
-                        && prev_state.time_left >= new_state.time_left
-                        && (prev_state.opened_valves & new_state.opened_valves) == new_state.opened_valves
+                    was_better :: (prev: d16_search_state, new: d16_search_state) -> bool {
+                        if prev.released_pressure < new.released_pressure return false;
+                        if (prev.opened_valves & new.opened_valves) != new.opened_valves return false;
+
+                        for prev_ss: prev.substates {
+                            new_ss := new.substates[it_index];
+                            if prev_ss.cur_room != new_ss.cur_room return false;
+                            if prev_ss.time_left < new_ss.time_left return false;
+                        }
+
+                        return true;
+                    }
+
+                    if was_better(prev_state, new_state)
                     {
                         if new_state.solution_path == " DD BB JJ HH" {
                             x := 5;
@@ -2439,20 +2455,41 @@ d16_search_substate :: struct {
     time_left : int = 30;
 }
 
+d16_clone :: (ss: *d16_search_state) -> d16_search_state {
+    result : d16_search_state;
+    result.released_pressure = ss.released_pressure;
+    result.opened_valves = ss.opened_valves;
+    result.debug_moves = ss.debug_moves;
+    result.solution_path = ss.solution_path;
+    for substate : ss.substates array_add(*result.substates, substate);  
+    return result;  
+}
+
 operator == :: (a: d16_search_state, b: d16_search_state) -> bool {
+    substates_equal :: (a: d16_search_substate, b: d16_search_substate) -> bool {
+        return a.time_left == b.time_left && a.cur_room == b.cur_room;
+    }
+
+    substates_equal :: (a: []d16_search_substate, b: []d16_search_substate) -> bool {
+        if a.count != b.count return false;
+        for a if !substates_equal(it, b[it_index]) return false;
+        return true;
+    }
+    
     return a.released_pressure == b.released_pressure
-        && a.cur_room == b.cur_room
-        && a.time_left == b.time_left
-        && a.opened_valves == b.opened_valves;
+        && a.opened_valves == b.opened_valves
+        && substates_equal(a.substates, b.substates);
 }
 
 get_hash_d16_search_state :: (v: d16_search_state) -> u32 {
     Hash :: #import "Hash";
     result : u32 = hash_combine(
         Hash.get_hash(v.released_pressure), 
-        Hash.get_hash(v.cur_room));
-    result = hash_combine(result, Hash.get_hash(v.time_left));
-    result = hash_combine(result, Hash.get_hash(v.opened_valves));
+        Hash.get_hash(v.opened_valves));
+    for ss : v.substates {
+        result = hash_combine(result, Hash.get_hash(ss.cur_room));
+        result = hash_combine(result, Hash.get_hash(ss.time_left));
+    }
     return result;
 }
 
