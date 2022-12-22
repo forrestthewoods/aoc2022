@@ -2187,26 +2187,27 @@ d15_span :: struct {
 // --------------------------------------------------------
 day16 :: () {
     day16_test();
-    day16_actual();
+    //day16_actual();
 }
 
 day16_test :: () {
     input, success := read_entire_file("data/day16_example.txt");
     assert(success);
 
-    assert(day16_solve(input) == 1651);
+    //assert(day16_solve(input, true) == 1651);
+    assert(day16_solve(input, false) == 1707);
 }
 
 day16_actual :: () {
     input, success := read_entire_file("data/day16.txt");
     assert(success);
 
-    part1 := day16_solve(input);
+    part1 := day16_solve(input, true);
     assert(part1 == 1845);
     print("day16 part1: %\n", part1);
 }
 
-day16_solve :: (input: string) -> int {
+day16_solve :: (input: string, is_part1: bool) -> int {
 
     room_to_mask : Table(string, u64);
 
@@ -2315,6 +2316,10 @@ day16_solve :: (input: string) -> int {
     open_list : [..]d16_search_state;
     
     init_state : d16_search_state;
+
+    // part2 start with less time
+    if !is_part1 init_state.time_left = 26;
+
     array_add(*full_list, d16_search_state.{});
     array_add(*open_list, d16_search_state.{});
 
@@ -2328,6 +2333,7 @@ day16_solve :: (input: string) -> int {
         assert(cur_room != null);
 
         // consider each other valve
+        found_path := false;
         for cur_room.paths {
             // get neighbor info
             neighbor : string = it_index;
@@ -2378,9 +2384,18 @@ day16_solve :: (input: string) -> int {
             } 
 
             if !found_better {
+                found_path = true;
                 array_add(*open_list, new_state);
                 array_add(*full_list, new_state);
             }
+        }
+
+        // can't follow this trail any further, start the second pass
+        if !found_path && cur_state.first_pass {
+            new_state : d16_search_state = cur_state;
+            new_state.time_left = 26;
+            new_state.cur_room = "AA";
+            new_state.first_pass = false;
         }
     }
 
@@ -2394,13 +2409,9 @@ day16_solve :: (input: string) -> int {
         }
      } 
 
-    // 1607 too low
-    // 1700 too low
-    // 1799 wrong but unknown
-    // 1935 too high
     print("(debug) moves: \n%\n", full_list[best_idx].debug_moves);
     print("(debug) path: %\n", full_list[best_idx].solution_path);
-    print("(debug) day16 part1: %\n\n\n", part1);
+    print("(debug) day16 partX: %\n\n\n", part1);
     return part1;
 }
 
@@ -2419,6 +2430,7 @@ d16_search_state :: struct {
     opened_valves : u64;
     debug_moves: string;
     solution_path: string;
+    first_pass : bool = true;
 }
 
 operator == :: (a: d16_search_state, b: d16_search_state) -> bool {
