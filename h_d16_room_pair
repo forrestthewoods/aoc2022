@@ -1,0 +1,94 @@
+[1mdiff --git a/jai/main.jai b/jai/main.jai[m
+[1mindex 63fe978..c52d561 100644[m
+[1m--- a/jai/main.jai[m
+[1m+++ b/jai/main.jai[m
+[36m@@ -159,6 +159,9 @@[m [marray_contains :: (array: [] $T, item: T) -> bool {[m
+     return success;[m
+ }[m
+ [m
+[32m+[m
+[32m+[m
+[32m+[m
+ // --------------------------------------------------------[m
+ // Day 01[m
+ // --------------------------------------------------------[m
+[36m@@ -2187,14 +2190,16 @@[m [md15_span :: struct {[m
+ // --------------------------------------------------------[m
+ day16 :: () {[m
+     day16_test();[m
+[31m-    day16_actual();[m
+[32m+[m[32m    //day16_actual();[m
+ }[m
+ [m
+ day16_test :: () {[m
+     input, success := read_entire_file("data/day16_example.txt");[m
+     assert(success);[m
+ [m
+[32m+[m[32m    print("test part1\n");[m
+     assert(day16_solve(input, true) == 1651);[m
+[32m+[m[32m    print("test part2\n");[m
+     assert(day16_solve(input, false) == 1707);[m
+ }[m
+ [m
+[36m@@ -2315,7 +2320,7 @@[m [mday16_solve :: (input: string, part1: bool) -> int {[m
+     }[m
+ [m
+     // bfs to find best rate[m
+[31m-    full_list : [..]d16_search_state;[m
+[32m+[m[32m    full_list : Table(d16_room_pair, [..]d16_search_state, get_hash_d16_room_pair);[m
+     open_list : [..]d16_search_state;[m
+     [m
+     init_state : d16_search_state;[m
+[36m@@ -2380,6 +2385,13 @@[m [mday16_solve :: (input: string, part1: bool) -> int {[m
+ [m
+                 new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%] substate: [%] sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - cur_substate.time_left, new_substate.time_left, pressure_to_release, substate_idx, new_state.released_pressure);[m
+ [m
+[32m+[m[32m                key : d16_room_pair;[m
+[32m+[m[32m                key.a = new_state.substates[0].cur_room;[m
+[32m+[m[32m                if new_state.substates.count > 0 {[m
+[32m+[m[32m                    key.b = new_state.substates[1].cur_room;[m
+[32m+[m[32m                }[m
+[32m+[m[32m                full_list := find_or_add(*full_list2, key);[m
+[32m+[m
+                 // see if any visited state is "better" than new_state[m
+                 found_better := false;[m
+                 for *prev_state : full_list {[m
+[36m@@ -2412,7 +2424,7 @@[m [mday16_solve :: (input: string, part1: bool) -> int {[m
+ [m
+                 if !found_better {[m
+                     array_add(*open_list, new_state);[m
+[31m-                    array_add(*full_list, new_state);[m
+[32m+[m[32m                    array_add(full_list, new_state);[m
+                 }[m
+             }[m
+         }[m
+[36m@@ -2493,6 +2505,22 @@[m [mget_hash_d16_search_state :: (v: d16_search_state) -> u32 {[m
+     return result;[m
+ }[m
+ [m
+[32m+[m[32md16_room_pair :: struct {[m
+[32m+[m[32m    a : string;[m
+[32m+[m[32m    b : string;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32moperator == :: (a: d16_room_pair, b: d16_room_pair) -> bool {[m
+[32m+[m[32m    return a.a == b.a && a.b == b.a;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mget_hash_d16_room_pair :: (rp : d16_room_pair) -> u32 {[m
+[32m+[m[32m    Hash :: #import "Hash";[m
+[32m+[m[32m    return hash_combine([m
+[32m+[m[32m        Hash.get_hash(rp.a),[m
+[32m+[m[32m        Hash.get_hash(rp.b));[m
+[32m+[m[32m}[m
+[32m+[m
+ [m
+ #import "Basic";[m
+ #import "Compiler";[m
+[36m@@ -2509,4 +2537,4 @@[m [mHash_Table :: #import "Hash_Table";[m
+ Math :: #import "Math";[m
+ #import "String";[m
+ #import "Sort";[m
+[31m-#import "Bit_Operations";[m
+\ No newline at end of file[m
+[32m+[m[32m#import "Bit_Operations";[m

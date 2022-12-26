@@ -159,6 +159,9 @@ array_contains :: (array: [] $T, item: T) -> bool {
     return success;
 }
 
+
+
+
 // --------------------------------------------------------
 // Day 01
 // --------------------------------------------------------
@@ -2187,14 +2190,16 @@ d15_span :: struct {
 // --------------------------------------------------------
 day16 :: () {
     day16_test();
-    day16_actual();
+    //day16_actual();
 }
 
 day16_test :: () {
     input, success := read_entire_file("data/day16_example.txt");
     assert(success);
 
+    print("test part1\n");
     assert(day16_solve(input, true) == 1651);
+    print("test part2\n");
     assert(day16_solve(input, false) == 1707);
 }
 
@@ -2315,11 +2320,12 @@ day16_solve :: (input: string, part1: bool) -> int {
     }
 
     // bfs to find best rate
-    full_list : [..]d16_search_state;
+    full_list : Table(d16_room_pair, [..]d16_search_state, get_hash_d16_room_pair);
     open_list : [..]d16_search_state;
     
     init_state : d16_search_state;
 
+    // part2 start with less time
     if part1 {
         array_add(*init_state.substates, d16_search_substate.{});
     } else {
@@ -2329,10 +2335,9 @@ day16_solve :: (input: string, part1: bool) -> int {
         array_add(*init_state.substates, s);
     }
 
-    // part2 start with less time
-
-    array_add(*full_list, init_state);
+    // init search states
     array_add(*open_list, init_state);
+    // TODO: initialize full_list with initial state
 
     // full traversal
     while open_list.count > 0 {
@@ -2380,9 +2385,16 @@ day16_solve :: (input: string, part1: bool) -> int {
 
                 new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%] substate: [%] sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - cur_substate.time_left, new_substate.time_left, pressure_to_release, substate_idx, new_state.released_pressure);
 
+                key : d16_room_pair;
+                key.a = new_state.substates[0].cur_room;
+                if new_state.substates.count > 1 {
+                    key.b = new_state.substates[1].cur_room;
+                }
+                prev_states : *[..]d16_search_state = find_or_add(*full_list, key);
+
                 // see if any visited state is "better" than new_state
                 found_better := false;
-                for *prev_state : full_list {
+                for *prev_state : <<prev_states {
                     was_better :: (prev: d16_search_state, new: d16_search_state) -> bool {
                         if prev.released_pressure < new.released_pressure return false;
                         if (prev.opened_valves & new.opened_valves) != new.opened_valves return false;
@@ -2412,7 +2424,7 @@ day16_solve :: (input: string, part1: bool) -> int {
 
                 if !found_better {
                     array_add(*open_list, new_state);
-                    array_add(*full_list, new_state);
+                    array_add(prev_states, new_state);
                 }
             }
         }
@@ -2420,16 +2432,18 @@ day16_solve :: (input: string, part1: bool) -> int {
 
     // find most pressure in visited
     answer := 0;
-    best_idx := 0;
-    for full_list {
-        if it.released_pressure > answer {
-            answer = it.released_pressure;
-            best_idx = it_index;
+    best_state : *d16_search_state;
+    for *prev_states : full_list {
+        for *prev_state : <<prev_states {
+            if prev_state.released_pressure > answer {
+                answer = prev_state.released_pressure;
+                best_state = prev_state;
+            }
         }
      } 
 
-    print("(debug) moves: \n%\n", full_list[best_idx].debug_moves);
-    print("(debug) path: %\n", full_list[best_idx].solution_path);
+    print("(debug) moves: \n%\n", best_state.debug_moves);
+    print("(debug) path: %\n", best_state.solution_path);
     print("(debug) day16 partX: %\n\n\n", answer);
     return answer;
 }
@@ -2491,6 +2505,22 @@ get_hash_d16_search_state :: (v: d16_search_state) -> u32 {
         result = hash_combine(result, Hash.get_hash(ss.time_left));
     }
     return result;
+}
+
+d16_room_pair :: struct {
+    a : string;
+    b : string;
+}
+
+operator == :: (a: d16_room_pair, b: d16_room_pair) -> bool {
+    return a.a == b.a && a.b == b.a;
+}
+
+get_hash_d16_room_pair :: (rp : d16_room_pair) -> u32 {
+    Hash :: #import "Hash";
+    return hash_combine(
+        Hash.get_hash(rp.a),
+        Hash.get_hash(rp.b));
 }
 
 
