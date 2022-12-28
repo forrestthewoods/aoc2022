@@ -82,44 +82,52 @@ map :: (array: [] $T, f: (T) -> $R) -> [] R {
     return result;
 }
 
-heap_pop :: (arr: *[..]$T, f: (T,T) -> bool) -> T {
-    assert(arr.count > 0);
-    result : T = arr.data[0];
-    
-    if arr.count == 1 {
-        arr.count = 0;
-    } else {
-        Swap(*arr.data[0], *arr.data[arr.count - 1]);
-        arr.count -= 1;
-        heapify(arr, arr.count - 1, f);
-    }
-
-    return result;
-}
-
 heap_push :: (arr: *[..]$T, v: T, f: (T,T) -> bool) {
     // add to end
     array_add(arr, v);
     if arr.count == 1 return;
 
-    i := arr.count/2 - 1;
-    while i >= 0 {
-        defer i -= 1;
-        heapify(arr, i, f);
+    // index of new element
+    idx := arr.count - 1;
+
+    // bubble up to top
+    while idx > 0 {
+        parent_idx := (idx-1)/2;
+        if f(arr.data[idx], arr.data[parent_idx]) {
+            Swap(*arr.data[idx], *arr.data[parent_idx]);
+            idx = parent_idx;
+        } else {
+            break;
+        }
     }
 }
 
-heapify :: (arr: *[..]$T, i: int, f: (T,T) -> bool) {
-    if arr.count <= 0 return;
+heap_pop :: (arr: *[..]$T, f: (T,T) -> bool) -> T {
+    assert(arr.count > 0);
+    result : T = arr.data[0];
+    
+    // swap first and last element
+    Swap(*arr.data[0], *arr.data[arr.count - 1]);
+    
+    // remove last element
+    arr.count -= 1;
 
+    // re-heapify
+    heapify(<<arr, 0, f);
+
+    // return value
+    return result;
+}
+
+heapify :: (arr: [..]$T, i: int, f: (T,T) -> bool) {
     largest := i;
     l := 2*i + 1;
     r := 2*i + 2;
 
-    if l < arr.count && f(arr.data[l], arr.data[largest]) largest = l;
-    if r < arr.count && f(arr.data[r], arr.data[largest]) largest = r;
+    if l < arr.count && f(arr[l], arr[largest]) largest = l;
+    if r < arr.count && f(arr[r], arr[largest]) largest = r;
     if largest != i {
-        Swap(*arr.data[i], *arr.data[largest]);
+        Swap(*arr[i], *arr[largest]);
         heapify(arr, largest, f);
     }
 }
