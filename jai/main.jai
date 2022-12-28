@@ -2375,7 +2375,7 @@ day16_solve :: (input: string, part1: bool) -> int {
     }
 
     // bfs to find best rate
-    full_list : Table(d16_room_pair, [..]d16_search_state, get_hash_d16_room_pair);
+    full_list : Table(u64, [..]d16_search_state);
     open_list : [..]d16_search_state;
     scratch_rooms : [..]*d16_room;
     
@@ -2395,17 +2395,26 @@ day16_solve :: (input: string, part1: bool) -> int {
     array_add(*open_list, init_state);
     // TODO: initialize full_list with initial state
 
+    open_list_cmp :: (a: d16_search_state, b: d16_search_state) -> bool {
+        return a.heuristic > b.heuristic;
+    }
+
     // full traversal
     while open_list.count > 0 {
         // get current room
-        cur_state := pop(*open_list);
+        //cur_state := pop(*open_list);
+        cur_state := heap_pop(*open_list, open_list_cmp);
         
         substate_idx := 0;
         while substate_idx < cur_state.substates.count {
             defer substate_idx += 1;
 
             cur_substate := *cur_state.substates[substate_idx];
-            if cur_substate.time_left <= 0 continue;
+            if cur_substate.time_left <= 0 {
+                // Found a solution!! guaranteed to be best because heuristic
+                break;
+                //continue;
+            }
 
             cur_room := table_find_pointer(*graph, cur_substate.cur_room);
             assert(cur_room != null);
@@ -2441,10 +2450,11 @@ day16_solve :: (input: string, part1: bool) -> int {
 
                 new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%] substate: [%] sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - cur_substate.time_left, new_substate.time_left, pressure_to_release, substate_idx, new_state.released_pressure);
 
-                key : d16_room_pair;
-                key.a = new_state.substates[0].cur_room;
-                if new_state.substates.count > 1 {
-                    key.b = new_state.substates[1].cur_room;
+                key : u64 = 0;
+                for *ss : new_state.substates {
+                    v, success := table_find(*room_to_mask, ss.cur_room);
+                    assert(success);
+                    key |= v;
                 }
 
                 default_value : [..]d16_search_state;
@@ -2457,7 +2467,7 @@ day16_solve :: (input: string, part1: bool) -> int {
                         if prev.released_pressure < new.released_pressure return false;
                         if (prev.opened_valves & new.opened_valves) != new.opened_valves return false;
 
-                        for prev_ss: prev.substates {
+                        for *prev_ss: prev.substates {
                             new_ss := new.substates[it_index];
                             if prev_ss.cur_room != new_ss.cur_room return false;
                             if prev_ss.time_left < new_ss.time_left return false;
@@ -2504,7 +2514,8 @@ day16_solve :: (input: string, part1: bool) -> int {
                     }
                     
                     // store new state
-                    array_add(*open_list, new_state);
+                    //array_add(*open_list, new_state);
+                    heap_push(*open_list, new_state, open_list_cmp);
                     array_add(prev_states, new_state);
                 }
             }
@@ -2588,23 +2599,6 @@ get_hash_d16_search_state :: (v: d16_search_state) -> u32 {
     }
     return result;
 }
-
-d16_room_pair :: struct {
-    a : string;
-    b : string;
-}
-
-operator == :: (a: d16_room_pair, b: d16_room_pair) -> bool {
-    return a.a == b.a && a.b == b.a;
-}
-
-get_hash_d16_room_pair :: (rp : d16_room_pair) -> u32 {
-    Hash :: #import "Hash";
-    return hash_combine(
-        Hash.get_hash(rp.a),
-        Hash.get_hash(rp.b));
-}
-
 
 #import "Basic";
 #import "Compiler";
