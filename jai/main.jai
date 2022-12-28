@@ -2348,8 +2348,6 @@ day16_solve :: (input: string, part1: bool) -> int {
             cur_state := open_list[best_idx];
             array_unordered_remove_by_index(*open_list, best_idx);
 
-            //cur_state := pop(*open_list);
-
             graph_room : *d16_room = table_find_pointer(*graph, cur_state.room);
             
             // process each neighbor
@@ -2369,24 +2367,10 @@ day16_solve :: (input: string, part1: bool) -> int {
                 assert(success);
                 if neighbor_room.rate > 0 {
                     table_set(*init_room.paths, neighbor, new_state.cost);
-                    //print("    dst: %  cost: %  room: %  table: %\n", neighbor, new_state.cost, graph_room.name, *graph_room.paths);
                 }
 
                 array_add(*open_list, new_state);
             }
-        }
-    }
-
-    for *graph {
-        room: *d16_room = it;
-        //print("room %\n", room.name);
-        //print("    tunnels\n");
-        //for room.tunnels print("        %\n", it);
-        //print("    paths\n");
-        for room.paths {
-            r : string = it_index;
-            c : int = it;
-            //print("        % - %\n", r, c);
         }
     }
 
@@ -2482,15 +2466,7 @@ day16_solve :: (input: string, part1: bool) -> int {
                         return true;
                     }
 
-                    if was_better(prev_state, new_state)
-                    {
-                        if new_state.solution_path == " DD BB JJ HH" {
-                            x := 5;
-                            x += 3;
-                        }
-
-                        //print("not pursuing %\n", new_state.solution_path);
-                        // TODO: this does not consider POTENTIAL of unopened valves
+                    if was_better(prev_state, new_state) {
                         found_better = false;
                         break;
                     }
