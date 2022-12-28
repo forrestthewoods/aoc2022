@@ -2261,7 +2261,7 @@ d15_span :: struct {
 // --------------------------------------------------------
 day16 :: () {
     day16_test();
-    day16_actual();
+    //day16_actual();
 }
 
 day16_test :: () {
@@ -2289,6 +2289,7 @@ day16_actual :: () {
 day16_solve :: (input: string, part1: bool) -> int {
 
     room_to_mask : Table(string, u64);
+    full_mask : u64 = 0;
 
     // parse input
     graph : Table(string, d16_room);
@@ -2307,10 +2308,11 @@ day16_solve :: (input: string, part1: bool) -> int {
             array_add(*new_room.tunnels, tunnel);
         }
 
+        if new_room.rate > 0 full_mask |= new_room.mask;
+
         table_set(*room_to_mask, new_room.name, new_room.mask);
         table_set(*graph, new_room.name, new_room);
     }
-
 
     // BFS from each source to find paths between valves
     for *graph {
@@ -2404,6 +2406,12 @@ day16_solve :: (input: string, part1: bool) -> int {
         // get current room
         //cur_state := pop(*open_list);
         cur_state := heap_pop(*open_list, open_list_cmp);
+
+        if cur_state.opened_valves == full_mask {
+            // Fully explored. Maybe da best?
+            print("found da best [%]\n", cur_state);
+            break;
+        }
         
         substate_idx := 0;
         while substate_idx < cur_state.substates.count {
@@ -2412,8 +2420,14 @@ day16_solve :: (input: string, part1: bool) -> int {
             cur_substate := *cur_state.substates[substate_idx];
             if cur_substate.time_left <= 0 {
                 // Found a solution!! guaranteed to be best because heuristic
-                break;
-                //continue;
+                //found_best = true;
+                //break;
+
+                x := 5;
+                x += 3;
+                print("found da best\n");
+                
+                continue;
             }
 
             cur_room := table_find_pointer(*graph, cur_substate.cur_room);
@@ -2446,9 +2460,9 @@ day16_solve :: (input: string, part1: bool) -> int {
                 pressure_to_release := neighbor_room.rate * new_substate.time_left;
                 new_state.released_pressure = cur_state.released_pressure + pressure_to_release;
 
-                new_state.solution_path = tprint("% %(%)", cur_state.solution_path, neighbor, substate_idx);
+                //new_state.solution_path = tprint("% %(%)", cur_state.solution_path, neighbor, substate_idx);
 
-                new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%] substate: [%] sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - cur_substate.time_left, new_substate.time_left, pressure_to_release, substate_idx, new_state.released_pressure);
+                //new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%] substate: [%] sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - cur_substate.time_left, new_substate.time_left, pressure_to_release, substate_idx, new_state.released_pressure);
 
                 key : d16_full_key;
                 for *ss : new_state.substates {
@@ -2495,15 +2509,15 @@ day16_solve :: (input: string, part1: bool) -> int {
                         room : string = it_index;
                         mask : u64 = it;
 
-                        if (new_state.opened_valves & mask) != 0 {
+                        if (new_state.opened_valves & mask) == 0 {
                             heap_push(*scratch_rooms, table_find_pointer(*graph, room), room_cmp);
                         }
                     }
 
                     // minus 2 because one to move, one to open
-                    new_state.heuristic = 0;
+                    new_state.heuristic = new_state.released_pressure;
                     time_left := 0;
-                    for ss : new_state.substates time_left = max(ss.time_left);
+                    for ss : new_state.substates time_left = max(ss.time_left - 2);
                     rooms_entered := 0;
                     while scratch_rooms.count > 0 {
                         room : *d16_room = heap_pop(*scratch_rooms, room_cmp);
@@ -2525,10 +2539,12 @@ day16_solve :: (input: string, part1: bool) -> int {
     }
 
     // find most pressure in visited
+    num_states := 0;
     answer := 0;
     best_state : *d16_search_state;
     for *prev_states : full_list {
         for *prev_state : <<prev_states {
+            num_states += 1;
             if prev_state.released_pressure > answer {
                 answer = prev_state.released_pressure;
                 best_state = prev_state;
@@ -2536,7 +2552,10 @@ day16_solve :: (input: string, part1: bool) -> int {
         }
      } 
 
-    print("(debug) moves: \n%\n", best_state.debug_moves);
+    print("(debug) full mask: %\n", full_mask);
+    print("(debug) best state: %\n", <<best_state);
+    print("(debug) num states searched: %\n", num_states);
+    print("(debug) moves: \n%", best_state.debug_moves);
     print("(debug) path: %\n", best_state.solution_path);
     print("(debug) day16 partX: %\n\n\n", answer);
     return answer;
