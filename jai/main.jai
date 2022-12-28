@@ -2261,7 +2261,7 @@ d15_span :: struct {
 // --------------------------------------------------------
 day16 :: () {
     day16_test();
-    //day16_actual();
+    day16_actual();
 }
 
 day16_test :: () {
@@ -2375,7 +2375,7 @@ day16_solve :: (input: string, part1: bool) -> int {
     }
 
     // bfs to find best rate
-    full_list : Table(u64, [..]d16_search_state);
+    full_list : Table(d16_full_key, [..]d16_search_state, get_hash_d16_full_key);
     open_list : [..]d16_search_state;
     scratch_rooms : [..]*d16_room;
     
@@ -2450,12 +2450,14 @@ day16_solve :: (input: string, part1: bool) -> int {
 
                 new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%] substate: [%] sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - cur_substate.time_left, new_substate.time_left, pressure_to_release, substate_idx, new_state.released_pressure);
 
-                key : u64 = 0;
+                key : d16_full_key;
                 for *ss : new_state.substates {
                     v, success := table_find(*room_to_mask, ss.cur_room);
                     assert(success);
-                    key |= v;
+                    key.cur_rooms |= v;
                 }
+                key.time_left_a = new_state.substates[0].time_left;
+                if new_state.substates.count > 1 key.time_left_b = new_state.substates[1].time_left;
 
                 default_value : [..]d16_search_state;
                 prev_states : *[..]d16_search_state = find_or_add(*full_list, key, default_value);
@@ -2599,6 +2601,28 @@ get_hash_d16_search_state :: (v: d16_search_state) -> u32 {
     }
     return result;
 }
+
+d16_full_key :: struct {
+    cur_rooms: u64;
+    time_left_a: int;
+    time_left_b: int = -1;
+}
+
+operator == :: (a: d16_full_key, b: d16_full_key) -> bool {
+    return a.cur_rooms == b.cur_rooms
+        && a.time_left_a == b.time_left_a
+        && a.time_left_b == b.time_left_b;
+}
+
+get_hash_d16_full_key :: (v : d16_full_key) -> u32 {
+    Hash :: #import "Hash";
+    return hash_combine(
+        hash_combine(
+            Hash.get_hash(v.cur_rooms),
+            Hash.get_hash(v.time_left_a)),
+        Hash.get_hash(v.time_left_b));
+}
+
 
 #import "Basic";
 #import "Compiler";
