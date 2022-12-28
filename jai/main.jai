@@ -2349,7 +2349,7 @@ day16_solve :: (input: string, part1: bool) -> int {
         init_state : bfs_state;
         init_state.room = table_find_assert(*room_to_index, init_room.name);
         array_add(*open_list, init_state);
-        table_set(*visited, starting_room_idx, 0);
+        table_set(*visited,  init_state.room, 0);
 
         // explore the whole thing
         while open_list.count > 0 {
