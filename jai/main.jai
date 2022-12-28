@@ -2393,6 +2393,7 @@ day16_solve :: (input: string, part1: bool) -> int {
     // bfs to find best rate
     full_list : Table(d16_room_pair, [..]d16_search_state, get_hash_d16_room_pair);
     open_list : [..]d16_search_state;
+    scratch_rooms : [..]*d16_room;
     
     init_state : d16_search_state;
 
@@ -2496,6 +2497,37 @@ day16_solve :: (input: string, part1: bool) -> int {
                 } 
 
                 if !found_better {
+                   room_cmp :: (a: *d16_room, b: *d16_room) -> bool {
+                        return a.rate > b.rate;
+                    }
+
+                    // create a heuristic for this new_state
+                    scratch_rooms.count = 0;
+                    for room_to_mask {
+                        room : string = it_index;
+                        mask : u64 = it;
+
+                        if (new_state.opened_valves & mask) != 0 {
+                            heap_push(*scratch_rooms, table_find_pointer(*graph, room), room_cmp);
+                        }
+                    }
+
+                    // minus 2 because one to move, one to open
+                    new_state.heuristic = 0;
+                    time_left := 0;
+                    for ss : new_state.substates time_left = max(ss.time_left);
+                    rooms_entered := 0;
+                    while scratch_rooms.count > 0 {
+                        room : *d16_room = heap_pop(*scratch_rooms, room_cmp);
+                        new_state.heuristic += time_left * room.rate;
+
+                        rooms_entered += 1;
+                        if (rooms_entered % new_state.substates.count) == 0 {
+                            time_left -= 2;
+                        }
+                    }
+                    
+                    // store new state
                     array_add(*open_list, new_state);
                     array_add(prev_states, new_state);
                 }
@@ -2535,6 +2567,7 @@ d16_search_state :: struct {
     debug_moves: string;
     solution_path: string;
     substates : [..]d16_search_substate;
+    heuristic : int;
 }
 
 d16_search_substate :: struct {
