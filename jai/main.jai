@@ -20,7 +20,22 @@ main :: () {
     // day13();
     // day14();
     // day15();
-    day16();
+    // day16();
+
+    cmp :: (a: int, b: int) -> bool { return a < b; }
+    nums : [..]int;
+
+    heap_push(*nums, 5, cmp);
+    heap_push(*nums, 2, cmp);
+    heap_push(*nums, 7, cmp);
+    heap_push(*nums, 11, cmp);
+    heap_push(*nums, 4, cmp);
+    heap_push(*nums, 9, cmp);
+    heap_push(*nums, 11, cmp);
+
+    while nums.count > 0 {
+        print("%\n", heap_pop(*nums, cmp));
+    }
 }
 
 
@@ -65,6 +80,48 @@ map :: (array: [] $T, f: (T) -> $R) -> [] R {
     for array array_add(*result, f(it));
 
     return result;
+}
+
+heap_pop :: (arr: *[..]$T, f: (T,T) -> bool) -> T {
+    assert(arr.count > 0);
+    result : T = arr.data[0];
+    
+    if arr.count == 1 {
+        arr.count = 0;
+    } else {
+        Swap(*arr.data[0], *arr.data[arr.count - 1]);
+        arr.count -= 1;
+        heapify(arr, arr.count - 1, f);
+    }
+
+    return result;
+}
+
+heap_push :: (arr: *[..]$T, v: T, f: (T,T) -> bool) {
+    // add to end
+    array_add(arr, v);
+    if arr.count == 1 return;
+
+    i := arr.count/2 - 1;
+    while i >= 0 {
+        defer i -= 1;
+        heapify(arr, i, f);
+    }
+}
+
+heapify :: (arr: *[..]$T, i: int, f: (T,T) -> bool) {
+    if arr.count <= 0 return;
+
+    largest := i;
+    l := 2*i + 1;
+    r := 2*i + 2;
+
+    if l < arr.count && f(arr.data[l], arr.data[largest]) largest = l;
+    if r < arr.count && f(arr.data[r], arr.data[largest]) largest = r;
+    if largest != i {
+        Swap(*arr.data[i], *arr.data[largest]);
+        heapify(arr, largest, f);
+    }
 }
 
 xprint :: (args: ..Any) -> string {
@@ -2390,7 +2447,9 @@ day16_solve :: (input: string, part1: bool) -> int {
                 if new_state.substates.count > 1 {
                     key.b = new_state.substates[1].cur_room;
                 }
-                prev_states : *[..]d16_search_state = find_or_add(*full_list, key);
+                // TODO: fix me
+                //prev_states : *[..]d16_search_state = find_or_add(*full_list, key);
+                prev_states : *[..]d16_search_state = null;
 
                 // see if any visited state is "better" than new_state
                 found_better := false;
