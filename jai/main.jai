@@ -20,22 +20,22 @@ main :: () {
     // day13();
     // day14();
     // day15();
-    // day16();
+    day16();
 
-    cmp :: (a: int, b: int) -> bool { return a < b; }
-    nums : [..]int;
+    // cmp :: (a: int, b: int) -> bool { return a < b; }
+    // nums : [..]int;
 
-    heap_push(*nums, 5, cmp);
-    heap_push(*nums, 2, cmp);
-    heap_push(*nums, 7, cmp);
-    heap_push(*nums, 11, cmp);
-    heap_push(*nums, 4, cmp);
-    heap_push(*nums, 9, cmp);
-    heap_push(*nums, 11, cmp);
+    // heap_push(*nums, 5, cmp);
+    // heap_push(*nums, 2, cmp);
+    // heap_push(*nums, 7, cmp);
+    // heap_push(*nums, 11, cmp);
+    // heap_push(*nums, 4, cmp);
+    // heap_push(*nums, 9, cmp);
+    // heap_push(*nums, 11, cmp);
 
-    while nums.count > 0 {
-        print("%\n", heap_pop(*nums, cmp));
-    }
+    // while nums.count > 0 {
+    //     print("%\n", heap_pop(*nums, cmp));
+    // }
 }
 
 
@@ -224,7 +224,13 @@ array_contains :: (array: [] $T, item: T) -> bool {
     return success;
 }
 
+find_or_add :: (table: *Table, key: table.Key_Type, default_value: table.Value_Type) -> *table.Value_Type {
+    value := table_find_pointer(table, key);
+    if value return value;
 
+    value = table_add(table, key, default_value);
+    return value;
+}
 
 
 // --------------------------------------------------------
@@ -2455,9 +2461,9 @@ day16_solve :: (input: string, part1: bool) -> int {
                 if new_state.substates.count > 1 {
                     key.b = new_state.substates[1].cur_room;
                 }
-                // TODO: fix me
-                //prev_states : *[..]d16_search_state = find_or_add(*full_list, key);
-                prev_states : *[..]d16_search_state = null;
+
+                default_value : [..]d16_search_state;
+                prev_states : *[..]d16_search_state = find_or_add(*full_list, key, default_value);
 
                 // see if any visited state is "better" than new_state
                 found_better := false;
