@@ -232,6 +232,12 @@ find_or_add :: (table: *Table, key: table.Key_Type, default_value: table.Value_T
     return value;
 }
 
+table_find_assert :: (table: *Table, key: table.Key_Type) -> table.Value_Type {
+    v, success := table_find(table, key);
+    assert(success);
+    return v;  
+}
+
 
 // --------------------------------------------------------
 // Day 01
@@ -2288,11 +2294,21 @@ day16_actual :: () {
 
 day16_solve :: (input: string, part1: bool) -> int {
 
-    room_to_mask : Table(string, u64);
+    room_to_mask : Table(RoomIndex, u64);
     full_mask : u64 = 0;
 
+    room_to_index : Table(string, RoomIndex);
+    room_idx : RoomIndex = 0;
+    for line : split(input, "\r\n") {
+        parts := split(line, " ");
+        table_set(*room_to_index, parts[1], room_idx);
+        room_idx += 1;
+    }
+    starting_room : string = "AA";
+    starting_room_idx := table_find_assert(*room_to_index, starting_room);
+
     // parse input
-    graph : Table(string, d16_room);
+    graph : Table(RoomIndex, d16_room);
     for line : split(input, "\r\n") {
         parts := split(line, " ");
 
@@ -2305,13 +2321,14 @@ day16_solve :: (input: string, part1: bool) -> int {
         tunnels_parts := slice(parts, 9);
         for tunnel_part : tunnels_parts {
             tunnel := trim(tunnel_part, ",");
-            array_add(*new_room.tunnels, tunnel);
+            array_add(*new_room.tunnels, table_find_assert(*room_to_index, tunnel));
         }
 
         if new_room.rate > 0 full_mask |= new_room.mask;
 
-        table_set(*room_to_mask, new_room.name, new_room.mask);
-        table_set(*graph, new_room.name, new_room);
+        room_index := table_find_assert(*room_to_index, new_room.name);
+        table_set(*room_to_mask, room_index, new_room.mask);
+        table_set(*graph, room_index, new_room);
     }
 
     // BFS from each source to find paths between valves
@@ -2321,18 +2338,18 @@ day16_solve :: (input: string, part1: bool) -> int {
         
         // help struct for search state
         bfs_state :: struct {
-            room : string;
+            room : RoomIndex;
             cost : int;
         }
 
         // initialize BFS search structs
-        visited : Table(string, int);
+        visited : Table(RoomIndex, int);
         open_list : [..]bfs_state;
 
         init_state : bfs_state;
-        init_state.room = init_room.name;
+        init_state.room = table_find_assert(*room_to_index, init_room.name);
         array_add(*open_list, init_state);
-        table_set(*visited, init_room.name, 0);
+        table_set(*visited, starting_room_idx, 0);
 
         // explore the whole thing
         while open_list.count > 0 {
@@ -2382,12 +2399,14 @@ day16_solve :: (input: string, part1: bool) -> int {
     scratch_rooms : [..]*d16_room;
     
     init_state : d16_search_state;
+    init_substate : d16_search_substate;
+    init_substate.cur_room = starting_room_idx;
 
     // part2 start with less time
     if part1 {
-        array_add(*init_state.substates, d16_search_substate.{});
+        array_add(*init_state.substates, init_substate);
     } else {
-        s : d16_search_substate;
+        s : d16_search_substate = init_substate;
         s.time_left = 26;
         array_add(*init_state.substates, s);
         array_add(*init_state.substates, s);
@@ -2418,6 +2437,7 @@ day16_solve :: (input: string, part1: bool) -> int {
             defer substate_idx += 1;
 
             cur_substate := *cur_state.substates[substate_idx];
+            assert(cur_substate.cur_room != -1);
             if cur_substate.time_left <= 0 {
                 // Found a solution!! guaranteed to be best because heuristic
                 //found_best = true;
@@ -2436,7 +2456,7 @@ day16_solve :: (input: string, part1: bool) -> int {
             // consider each other valve
             for cur_room.paths {
                 // get neighbor info
-                neighbor : string = it_index;
+                neighbor : RoomIndex = it_index;
                 neighbor_cost : int = it;
 
                 neighbor_room := table_find_pointer(*graph, neighbor);
@@ -2506,7 +2526,7 @@ day16_solve :: (input: string, part1: bool) -> int {
                     // create a heuristic for this new_state
                     scratch_rooms.count = 0;
                     for room_to_mask {
-                        room : string = it_index;
+                        room : RoomIndex = it_index;
                         mask : u64 = it;
 
                         if (new_state.opened_valves & mask) == 0 {
@@ -2561,12 +2581,14 @@ day16_solve :: (input: string, part1: bool) -> int {
     return answer;
 }
 
+RoomIndex :: #type,distinct int;
+
 d16_room :: struct {
     name : string;
     mask : u64;
     rate : int;
-    tunnels : [..]string;
-    paths : Table(string, int);
+    tunnels : [..]RoomIndex;
+    paths : Table(RoomIndex, int);
 }
 
 d16_search_state :: struct {
@@ -2579,7 +2601,7 @@ d16_search_state :: struct {
 }
 
 d16_search_substate :: struct {
-    cur_room : string = "AA";
+    cur_room : RoomIndex = -1;
     time_left : int = 30;
 }
 
