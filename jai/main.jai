@@ -3064,7 +3064,7 @@ day19_actual :: () {
 }
 
 day19_solve :: (input: string) -> int {
-    num_minutes :: 23;
+    num_minutes :: 24;
 
     blueprints : [..]d19_blueprint;
 
@@ -3121,81 +3121,104 @@ day19_solve :: (input: string) -> int {
 
             // if goal and resources
                 // build robot
-                // clear goal
+                // clear newstate goal
             // if no goal
                 // make ore goal
                 // make clay goal
                 // if have clay production make obsidian goal
                 // if have obsidian production make geode goal
 
-                
-/*
-
-            // create nothing
-            if !table_contains(*visited, new_state) {
-                array_add(*open_list, new_state);
-                table_set(*visited, new_state, 0);
-            }
-
             // create an ore robot
-            // don't build too many
-            if cur_state.ore_robots <= max_ore_robots 
-                && cur_state.ore >= bp.ore_robot_ore_cost 
+            if cur_state.goal == 0 && cur_state.ore_robots <= max_ore_robots
+                && cur_state.ore >= bp.ore_robot_ore_cost
             {
-                s := new_state;
-                s.ore -= bp.ore_robot_ore_cost;
-                s.ore_robots += 1;
-
-                if !table_contains(*visited, s) {
-                    array_add(*open_list, s);
-                    table_set(*visited, s, 0);
-                }
+                new_state.ore -= bp.ore_robot_ore_cost;
+                new_state.ore_robots += 1;
+                new_state.goal = -1;
             }
 
-            // create a clay robot
-            if cur_state.ore >= bp.clay_robot_ore_cost {
-                s := new_state;
-                s.ore -= bp.clay_robot_ore_cost;
-                s.clay_robots += 1;
-                
-                if !table_contains(*visited, s) {
-                    array_add(*open_list, s);
-                    table_set(*visited, s, 0);
-                }
+            if cur_state.goal == 1 && cur_state.ore >= bp.clay_robot_ore_cost {
+                new_state.ore -= bp.clay_robot_ore_cost;
+                new_state.clay_robots += 1;
+                new_state.goal = -1;
             }
 
-            // create an obsidian robot
-            if cur_state.ore >= bp.obsidian_robot_ore_cost 
-                && cur_state.clay >= bp.obsidian_robot_clay_cost 
+            if cur_state.goal == 2 && cur_state.ore >= bp.obsidian_robot_ore_cost
+                && cur_state.clay >= bp.obsidian_robot_clay_cost
             {
-                s := new_state;
-                s.ore -= bp.obsidian_robot_ore_cost;
-                s.clay -= bp.obsidian_robot_clay_cost;
-                s.obsidian_robots += 1;
-                
-                if !table_contains(*visited, s) {
-                    array_add(*open_list, s);
-                    table_set(*visited, s, 0);
-                }
+                new_state.ore -= bp.obsidian_robot_ore_cost;
+                new_state.clay -= bp.obsidian_robot_clay_cost;
+                new_state.obsidian_robots += 1;
+                new_state.goal = -1;
             }
 
-            // create a geode robot
-            if cur_state.ore >= bp.geode_robot_ore_cost
-                && cur_state.obsidian >= bp.geode_robot_obsidian_cost
+            if cur_state.goal == 3 && cur_state.ore >= bp.geode_robot_ore_cost
+                    && cur_state.obsidian >= bp.geode_robot_obsidian_cost
             {
-                s := new_state;
-                s.ore -= bp.geode_robot_ore_cost;
-                s.obsidian -= bp.geode_robot_obsidian_cost;
-                s.geode_robots += 1;
-                
-                if !table_contains(*visited, s) {
-                    array_add(*open_list, s);
-                    table_set(*visited, s, 0);
+                new_state.ore -= bp.geode_robot_ore_cost;
+                new_state.obsidian -= bp.geode_robot_obsidian_cost;
+                new_state.geode_robots += 1;
+                new_state.goal = -1;
+            }
+
+            if new_state.goal != -1 {
+                // did not build a robot. append state.
+                if !table_contains(*visited, new_state) {
+                    array_add(*open_list, new_state);
+                    table_set(*visited, new_state, 0);
                 }
             }
-*/
+            else {
+                // built a robot! consider all possible robots as goals
+
+                // try to build an ore robot
+                if new_state.ore_robots < max_ore_robots {
+                    // make our goal an ore robot
+                    s := new_state;
+                    s.goal = 0;
+
+                    if !table_contains(*visited, s) {
+                        array_add(*open_list, s);
+                        table_set(*visited, s, 0);
+                    }
+                }
+
+                // try to build a clay robot
+                {
+                    s := new_state;
+                    s.goal = 1;
+
+                    if !table_contains(*visited, s) {
+                        array_add(*open_list, s);
+                        table_set(*visited, s, 0);
+                    }
+                }
+
+                // try to build an obsidian robot
+                if new_state.clay_robots > 0 {
+                    s := new_state;
+                    s.goal = 2;
+
+                    if !table_contains(*visited, s) {
+                        array_add(*open_list, s);
+                        table_set(*visited, s, 0);
+                    }
+                }
+
+                // try to build a geode robot
+                if new_state.obsidian_robots > 0 {
+                    s := new_state;
+                    s.goal = 3;
+
+                    if !table_contains(*visited, s) {
+                        array_add(*open_list, s);
+                        table_set(*visited, s, 0);
+                    }
+                }
+            }
         }
 
+        print("% * % = %\n", best_geodes, bp.id, best_geodes * bp.id);
         part1 += best_geodes * bp.id;
     }
 
@@ -3232,6 +3255,7 @@ get_hash_d19_state :: (v: d19_state) -> u32 {
     Hash :: #import "Hash";
     result : u32 = 0;
     result = hash_combine(result, Hash.get_hash(v.minute));
+    result = hash_combine(result, Hash.get_hash(v.goal));
 
     result = hash_combine(result, Hash.get_hash(v.ore));
     result = hash_combine(result, Hash.get_hash(v.clay));
