@@ -3053,6 +3053,11 @@ day19_test :: () {
 
     part1 := day19_solve(input, true);
     print("(test) day19 part1: %\n", part1);
+    assert(part1 == 33);
+
+    part2 := day19_solve(input, false);
+    print("(test) day19 part2: %\n", part2);
+    assert(part2 == 3472);
 }
 
 day19_actual :: () {
@@ -3062,15 +3067,21 @@ day19_actual :: () {
     part1 := day19_solve(input, true);
     print("day19 part1: %\n", part1);
     assert(part1 == 1653);
+
+    part2 := day19_solve(input, false);
+    print("day19 part2: %\n", part2);
+    assert(part2 == 4212);
 }
 
 day19_solve :: (input: string, is_part1: bool) -> int {
+    if is_part1 print("\n\npart ONE\n");
+    else print("\n\npart TWO\n");
+
     // minutes depends on part
     num_minutes := ifx is_part1 then 24 else 32;
 
-    blueprints : [..]d19_blueprint;
-
     // parse blueprints
+    blueprints : [..]d19_blueprint;
     for line : split(input, "\r\n") {
         parts := split(line, " ");
         assert(parts.count == 32);
@@ -3093,7 +3104,7 @@ day19_solve :: (input: string, is_part1: bool) -> int {
         blueprints.count = min(blueprints.count, 3);
     }
 
-    part1 := 0;
+    answer := ifx is_part1 then 0 else 1;
     best_state : d19_state;
     for bp : blueprints {
         best_geodes := 0;
@@ -3130,7 +3141,19 @@ day19_solve :: (input: string, is_part1: bool) -> int {
                 continue;
             }
 
+            // increment time
             new_state.minute += 1;
+
+
+            // theoretical best geodes
+            time_left := num_minutes - new_state.minute + 1;
+            best_case := new_state.geodes 
+                + (new_state.geode_robots * (time_left))
+                + ((time_left*(time_left + 1))/2);
+
+            // just stop if the best possible scenario for this state isn't good enough
+            if best_case < best_geodes continue;
+
 
             // if goal and resources
                 // build robot
@@ -3235,12 +3258,16 @@ day19_solve :: (input: string, is_part1: bool) -> int {
             }
         }
 
-        print("best state path: \n%", best_state.debug_path);
-        print("% * % = %\n", best_geodes, bp.id, best_geodes * bp.id);
-        part1 += best_geodes * bp.id;
+        //print("best state path: \n%", best_state.debug_path);
+        if is_part1 print("    % * % = %\n", best_geodes, bp.id, best_geodes * bp.id);
+        else print("    %\n", best_geodes);
+
+        if is_part1 answer += best_geodes * bp.id;
+        else answer *= best_geodes;
     }
 
-    return part1;
+    // 1489 - too low
+    return answer;
 }
 
 d19_blueprint :: struct {
@@ -3268,7 +3295,7 @@ d19_state :: struct {
     obsidian_robots: int;
     geode_robots: int;
 
-    debug_path: string;
+    //debug_path: string;
 }
 
 get_hash_d19_state :: (v: d19_state) -> u32 {
