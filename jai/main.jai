@@ -3074,9 +3074,6 @@ day19_actual :: () {
 }
 
 day19_solve :: (input: string, is_part1: bool) -> int {
-    if is_part1 print("\n\npart ONE\n");
-    else print("\n\npart TWO\n");
-
     // minutes depends on part
     num_minutes := ifx is_part1 then 24 else 32;
 
@@ -3109,6 +3106,7 @@ day19_solve :: (input: string, is_part1: bool) -> int {
     for bp : blueprints {
         best_geodes := 0;
 
+        // don't bother building more ore robots than maximum ore cost
         max_ore_robots := max(bp.ore_robot_ore_cost, bp.clay_robot_ore_cost);
         max_ore_robots = max(max_ore_robots, bp.obsidian_robot_ore_cost);
         max_ore_robots = max(max_ore_robots, bp.geode_robot_ore_cost);
@@ -3117,6 +3115,7 @@ day19_solve :: (input: string, is_part1: bool) -> int {
         visited : Table(d19_state, int, get_hash_d19_state);
         open_list : [..]d19_state;
 
+        // initialize with both ORE and CLAY robots as initial goal
         array_add(*open_list, d19_state.{goal=0});
         array_add(*open_list, d19_state.{goal=1});
 
@@ -3155,15 +3154,6 @@ day19_solve :: (input: string, is_part1: bool) -> int {
             if best_case < best_geodes continue;
 
 
-            // if goal and resources
-                // build robot
-                // clear newstate goal
-            // if no goal
-                // make ore goal
-                // make clay goal
-                // if have clay production make obsidian goal
-                // if have obsidian production make geode goal
-
             // create an ore robot
             if cur_state.goal == 0 && cur_state.ore_robots <= max_ore_robots
                 && cur_state.ore >= bp.ore_robot_ore_cost
@@ -3171,16 +3161,16 @@ day19_solve :: (input: string, is_part1: bool) -> int {
                 new_state.ore -= bp.ore_robot_ore_cost;
                 new_state.ore_robots += 1;
                 new_state.goal = -1;
-                //new_state.debug_path = tprint("%    built ORE robot after minute %\n", new_state.debug_path, cur_state.minute); 
             }
 
+            // create a clay robot
             if cur_state.goal == 1 && cur_state.ore >= bp.clay_robot_ore_cost {
                 new_state.ore -= bp.clay_robot_ore_cost;
                 new_state.clay_robots += 1;
                 new_state.goal = -1;
-                //new_state.debug_path = tprint("%    built CLAY robot after minute %\n", new_state.debug_path, cur_state.minute); 
             }
 
+            // create an obsidian robot
             if cur_state.goal == 2 && cur_state.ore >= bp.obsidian_robot_ore_cost
                 && cur_state.clay >= bp.obsidian_robot_clay_cost
             {
@@ -3188,9 +3178,9 @@ day19_solve :: (input: string, is_part1: bool) -> int {
                 new_state.clay -= bp.obsidian_robot_clay_cost;
                 new_state.obsidian_robots += 1;
                 new_state.goal = -1;
-                //new_state.debug_path = tprint("%    built OBSIDIAN robot after minute %\n", new_state.debug_path, cur_state.minute); 
             }
 
+            // create a geode robot
             if cur_state.goal == 3 && cur_state.ore >= bp.geode_robot_ore_cost
                     && cur_state.obsidian >= bp.geode_robot_obsidian_cost
             {
@@ -3198,18 +3188,17 @@ day19_solve :: (input: string, is_part1: bool) -> int {
                 new_state.obsidian -= bp.geode_robot_obsidian_cost;
                 new_state.geode_robots += 1;
                 new_state.goal = -1;
-                //new_state.debug_path = tprint("%    built GEODE robot after minute %\n", new_state.debug_path, cur_state.minute); 
             }
 
             if new_state.goal != -1 {
-                // did not build a robot. append state.
+                // did not build a robot. append state and keep going.
                 if !table_contains(*visited, new_state) {
                     array_add(*open_list, new_state);
                     table_set(*visited, new_state, 0);
                 }
             }
             else {
-                // built a robot! consider all possible robots as goals
+                // built a robot! consider all possible robots as next goals
 
                 // try to build an ore robot
                 if new_state.ore_robots < max_ore_robots {
@@ -3258,15 +3247,10 @@ day19_solve :: (input: string, is_part1: bool) -> int {
             }
         }
 
-        //print("best state path: \n%", best_state.debug_path);
-        if is_part1 print("    % * % = %\n", best_geodes, bp.id, best_geodes * bp.id);
-        else print("    %\n", best_geodes);
-
         if is_part1 answer += best_geodes * bp.id;
         else answer *= best_geodes;
     }
 
-    // 1489 - too low
     return answer;
 }
 
@@ -3294,8 +3278,6 @@ d19_state :: struct {
     clay_robots: int;
     obsidian_robots: int;
     geode_robots: int;
-
-    //debug_path: string;
 }
 
 get_hash_d19_state :: (v: d19_state) -> u32 {
