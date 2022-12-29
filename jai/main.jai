@@ -2267,7 +2267,7 @@ d15_span :: struct {
 // --------------------------------------------------------
 day16 :: () {
     day16_test();
-    day16_actual();
+    //day16_actual();
 }
 
 day16_test :: () {
@@ -2498,6 +2498,7 @@ day16_solve :: (input: string, part1: bool) -> int {
 
                 // see if any visited state is "better" than new_state
                 found_better := false;
+                /*
                 for *prev_state : <<prev_states {
                     was_better :: (prev: d16_search_state, new: d16_search_state) -> bool {
                         if prev.released_pressure < new.released_pressure return false;
@@ -2517,6 +2518,7 @@ day16_solve :: (input: string, part1: bool) -> int {
                         break;
                     }
                 } 
+                */
 
                 if !found_better {
                    room_cmp :: (a: *d16_room, b: *d16_room) -> bool {
@@ -2575,8 +2577,8 @@ day16_solve :: (input: string, part1: bool) -> int {
     print("(debug) full mask: %\n", full_mask);
     print("(debug) best state: %\n", <<best_state);
     print("(debug) num states searched: %\n", num_states);
-    print("(debug) moves: \n%", best_state.debug_moves);
-    print("(debug) path: %\n", best_state.solution_path);
+    //print("(debug) moves: \n%", best_state.debug_moves);
+    //print("(debug) path: %\n", best_state.solution_path);
     print("(debug) day16 partX: %\n\n\n", answer);
     return answer;
 }
@@ -2592,11 +2594,9 @@ d16_room :: struct {
 }
 
 d16_search_state :: struct {
-    released_pressure : int;
-    opened_valves : u64;
-    debug_moves: string;
-    solution_path: string;
     substates : [..]d16_search_substate;
+    opened_valves : u64;
+    released_pressure : int;
     heuristic : int;
 }
 
@@ -2609,8 +2609,8 @@ d16_clone :: (ss: *d16_search_state) -> d16_search_state {
     result : d16_search_state;
     result.released_pressure = ss.released_pressure;
     result.opened_valves = ss.opened_valves;
-    result.debug_moves = ss.debug_moves;
-    result.solution_path = ss.solution_path;
+    //result.debug_moves = ss.debug_moves;
+    //result.solution_path = ss.solution_path;
     for substate : ss.substates array_add(*result.substates, substate);  
     return result;  
 }
