@@ -3044,7 +3044,7 @@ day18_part2 :: (input: string) -> int {
 // --------------------------------------------------------
 day19 :: () {
     day19_test();
-    //day19_actual();
+    day19_actual();
 }
 
 day19_test :: () {
@@ -3061,6 +3061,7 @@ day19_actual :: () {
 
     part1 := day19_solve(input);
     print("day19 part1: %\n", part1);
+    assert(part1 == 1653);
 }
 
 day19_solve :: (input: string) -> int {
@@ -3087,6 +3088,7 @@ day19_solve :: (input: string) -> int {
     }
 
     part1 := 0;
+    best_state : d19_state;
     for bp : blueprints {
         best_geodes := 0;
 
@@ -3097,7 +3099,9 @@ day19_solve :: (input: string) -> int {
         // prepare search
         visited : Table(d19_state, int, get_hash_d19_state);
         open_list : [..]d19_state;
-        array_add(*open_list, d19_state.{});
+
+        array_add(*open_list, d19_state.{goal=0});
+        array_add(*open_list, d19_state.{goal=1});
 
         // exhaustive search
         while open_list.count > 0 {
@@ -3113,7 +3117,10 @@ day19_solve :: (input: string) -> int {
 
             // end of the line, no more time
             if new_state.minute == num_minutes {
-                best_geodes = max(best_geodes, new_state.geodes);
+                if new_state.geodes > best_geodes {
+                    best_geodes = new_state.geodes;
+                    best_state = new_state;
+                }
                 continue;
             }
 
@@ -3135,12 +3142,14 @@ day19_solve :: (input: string) -> int {
                 new_state.ore -= bp.ore_robot_ore_cost;
                 new_state.ore_robots += 1;
                 new_state.goal = -1;
+                //new_state.debug_path = tprint("%    built ORE robot after minute %\n", new_state.debug_path, cur_state.minute); 
             }
 
             if cur_state.goal == 1 && cur_state.ore >= bp.clay_robot_ore_cost {
                 new_state.ore -= bp.clay_robot_ore_cost;
                 new_state.clay_robots += 1;
                 new_state.goal = -1;
+                //new_state.debug_path = tprint("%    built CLAY robot after minute %\n", new_state.debug_path, cur_state.minute); 
             }
 
             if cur_state.goal == 2 && cur_state.ore >= bp.obsidian_robot_ore_cost
@@ -3150,6 +3159,7 @@ day19_solve :: (input: string) -> int {
                 new_state.clay -= bp.obsidian_robot_clay_cost;
                 new_state.obsidian_robots += 1;
                 new_state.goal = -1;
+                //new_state.debug_path = tprint("%    built OBSIDIAN robot after minute %\n", new_state.debug_path, cur_state.minute); 
             }
 
             if cur_state.goal == 3 && cur_state.ore >= bp.geode_robot_ore_cost
@@ -3159,6 +3169,7 @@ day19_solve :: (input: string) -> int {
                 new_state.obsidian -= bp.geode_robot_obsidian_cost;
                 new_state.geode_robots += 1;
                 new_state.goal = -1;
+                //new_state.debug_path = tprint("%    built GEODE robot after minute %\n", new_state.debug_path, cur_state.minute); 
             }
 
             if new_state.goal != -1 {
@@ -3218,6 +3229,7 @@ day19_solve :: (input: string) -> int {
             }
         }
 
+        print("best state path: \n%", best_state.debug_path);
         print("% * % = %\n", best_geodes, bp.id, best_geodes * bp.id);
         part1 += best_geodes * bp.id;
     }
@@ -3238,7 +3250,7 @@ d19_blueprint :: struct {
 d19_state :: struct {
     minute: int = 1;
 
-    goal: int = 0;
+    goal: int = -1;
 
     ore: int;
     clay: int;
@@ -3249,6 +3261,8 @@ d19_state :: struct {
     clay_robots: int;
     obsidian_robots: int;
     geode_robots: int;
+
+    debug_path: string;
 }
 
 get_hash_d19_state :: (v: d19_state) -> u32 {
