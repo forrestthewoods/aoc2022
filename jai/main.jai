@@ -20,22 +20,10 @@ main :: () {
     // day13();
     // day14();
     // day15();
-    day16();
-
-    // cmp :: (a: int, b: int) -> bool { return a < b; }
-    // nums : [..]int;
-
-    // heap_push(*nums, 5, cmp);
-    // heap_push(*nums, 2, cmp);
-    // heap_push(*nums, 7, cmp);
-    // heap_push(*nums, 11, cmp);
-    // heap_push(*nums, 4, cmp);
-    // heap_push(*nums, 9, cmp);
-    // heap_push(*nums, 11, cmp);
-
-    // while nums.count > 0 {
-    //     print("%\n", heap_pop(*nums, cmp));
-    // }
+    // day16();
+    // day17();
+    // day18();
+    day19();
 }
 
 
@@ -177,6 +165,31 @@ get_hash :: (v: Vec2) -> u32 {
     return hash_combine(Hash.get_hash(v.x), Hash.get_hash(v.y));
 }
 
+Vec3 :: struct {
+    x: int;
+    y: int;
+    z: int;
+}
+
+operator + :: (a: Vec3, b: Vec3) -> Vec3 {
+    return Vec3.{
+        a.x + b.x,
+        a.y + b.y,
+        a.z + b.z 
+    };
+}
+
+operator == :: (a: Vec3, b: Vec3) -> bool {
+    return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
+get_hash_vec3 :: (v: Vec3) -> u32 {
+    Hash :: #import "Hash";
+    return hash_combine(
+            hash_combine(Hash.get_hash(v.x), Hash.get_hash(v.y)),
+            Hash.get_hash(v.z));
+}
+
 hash_combine :: (seed: u32, v: u32) -> u32 {
     return seed ^ (v + 0x9e3779b9 + (seed << 6) + (seed >> 2));
 }
@@ -230,6 +243,12 @@ find_or_add :: (table: *Table, key: table.Key_Type, default_value: table.Value_T
 
     value = table_add(table, key, default_value);
     return value;
+}
+
+
+table_contains :: (table: *Table, key: table.Key_Type) -> bool {
+    v, success := table_find(table, key);
+    return success;  
 }
 
 table_find_assert :: (table: *Table, key: table.Key_Type) -> table.Value_Type {
@@ -2267,7 +2286,7 @@ d15_span :: struct {
 // --------------------------------------------------------
 day16 :: () {
     day16_test();
-    //day16_actual();
+    day16_actual();
 }
 
 day16_test :: () {
@@ -2289,13 +2308,14 @@ day16_actual :: () {
     print("day16 part1: %\n", part1);
 
     part2 := day16_solve(input, false);
+    assert(part2 == 2286);
     print("day16 part2: %\n", part2);
 }
 
 day16_solve :: (input: string, part1: bool) -> int {
-
     room_to_mask : Table(RoomIndex, u64);
-    full_mask : u64 = 0;
+    valveroom_to_mask : Table(RoomIndex, u64);
+    valverooms_mask : u64 = 0;
 
     room_to_index : Table(string, RoomIndex);
     room_idx : RoomIndex = 0;
@@ -2308,13 +2328,14 @@ day16_solve :: (input: string, part1: bool) -> int {
     starting_room_idx := table_find_assert(*room_to_index, starting_room);
 
     // parse input
-    graph : Table(RoomIndex, d16_room);
+    graph : [..]d16_room;
     for line : split(input, "\r\n") {
         parts := split(line, " ");
 
         new_room : d16_room;
-        
         new_room.name = parts[1];
+        room_index := table_find_assert(*room_to_index, new_room.name);
+        
         new_room.mask = cast(u64)1 << room_to_mask.count;
         new_room.rate = string_to_int(trim(parts[4], "rate=;"));
         
@@ -2324,11 +2345,13 @@ day16_solve :: (input: string, part1: bool) -> int {
             array_add(*new_room.tunnels, table_find_assert(*room_to_index, tunnel));
         }
 
-        if new_room.rate > 0 full_mask |= new_room.mask;
+        if new_room.rate > 0 {
+            table_set(*valveroom_to_mask, room_index, new_room.mask);
+            valverooms_mask |= new_room.mask;
+        }
 
-        room_index := table_find_assert(*room_to_index, new_room.name);
         table_set(*room_to_mask, room_index, new_room.mask);
-        table_set(*graph, room_index, new_room);
+        array_add(*graph, new_room);
     }
 
     // BFS from each source to find paths between valves
@@ -2367,7 +2390,7 @@ day16_solve :: (input: string, part1: bool) -> int {
             cur_state := open_list[best_idx];
             array_unordered_remove_by_index(*open_list, best_idx);
 
-            graph_room : *d16_room = table_find_pointer(*graph, cur_state.room);
+            graph_room : *d16_room = *graph.data[cur_state.room];
             
             // process each neighbor
             for neighbor : graph_room.tunnels {
@@ -2382,8 +2405,7 @@ day16_solve :: (input: string, part1: bool) -> int {
                 new_state.cost = cur_state.cost + 1;
 
                 // store paths to rooms with rate > 0
-                neighbor_room, success := table_find(*graph, neighbor);
-                assert(success);
+                neighbor_room : *d16_room = *graph.data[neighbor];
                 if neighbor_room.rate > 0 {
                     table_set(*init_room.paths, neighbor, new_state.cost);
                 }
@@ -2399,17 +2421,11 @@ day16_solve :: (input: string, part1: bool) -> int {
     scratch_rooms : [..]*d16_room;
     
     init_state : d16_search_state;
-    init_substate : d16_search_substate;
-    init_substate.cur_room = starting_room_idx;
+    init_state.cur_room = starting_room_idx;
 
     // part2 start with less time
-    if part1 {
-        array_add(*init_state.substates, init_substate);
-    } else {
-        s : d16_search_substate = init_substate;
-        s.time_left = 26;
-        array_add(*init_state.substates, s);
-        array_add(*init_state.substates, s);
+    if !part1 {
+        init_state.time_left = 26;
     }
 
     // init search states
@@ -2425,138 +2441,111 @@ day16_solve :: (input: string, part1: bool) -> int {
         // get current room
         //cur_state := pop(*open_list);
         cur_state := heap_pop(*open_list, open_list_cmp);
+        assert(cur_state.time_left > 0);
 
-        if cur_state.opened_valves == full_mask {
+        if cur_state.opened_valves == valverooms_mask {
             // Fully explored. Maybe da best?
             print("found da best [%]\n", cur_state);
             break;
         }
         
-        substate_idx := 0;
-        while substate_idx < cur_state.substates.count {
-            defer substate_idx += 1;
+        cur_room := *graph.data[cur_state.cur_room];
+        assert(cur_room != null);
 
-            cur_substate := *cur_state.substates[substate_idx];
-            assert(cur_substate.cur_room != -1);
-            if cur_substate.time_left <= 0 {
-                // Found a solution!! guaranteed to be best because heuristic
-                //found_best = true;
-                //break;
+        // consider each other valve
+        for cur_room.paths {
+            // get neighbor info
+            neighbor : RoomIndex = it_index;
+            neighbor_cost : int = it;
 
-                x := 5;
-                x += 3;
-                print("found da best\n");
-                
-                continue;
-            }
+            neighbor_room := *graph.data[neighbor];
+            assert(neighbor_room != null);
+            assert(neighbor_room.rate > 0);
 
-            cur_room := table_find_pointer(*graph, cur_substate.cur_room);
-            assert(cur_room != null);
+            // don't open valves multiple times
+            if cur_state.opened_valves & neighbor_room.mask > 0 continue;
 
-            // consider each other valve
-            for cur_room.paths {
-                // get neighbor info
-                neighbor : RoomIndex = it_index;
-                neighbor_cost : int = it;
+            // don't open if there's not enough time to move, open, and release
+            cost_to_open := neighbor_cost + 1;
+            if cur_state.time_left <= cost_to_open continue;
 
-                neighbor_room := table_find_pointer(*graph, neighbor);
-                assert(neighbor_room != null);
-                assert(neighbor_room.rate > 0);
+            // potential new state
+            new_state : d16_search_state = cur_state;
+            new_state.cur_room = neighbor;
+            new_state.time_left = cur_state.time_left - cost_to_open;
+            new_state.opened_valves = cur_state.opened_valves | neighbor_room.mask;
+            
+            pressure_to_release := neighbor_room.rate * new_state.time_left;
+            new_state.released_pressure = cur_state.released_pressure + pressure_to_release;
 
-                // don't open valves multiple times
-                if cur_state.opened_valves & neighbor_room.mask > 0 continue;
+            //new_state.solution_path = tprint("% %(%)", cur_state.solution_path, neighbor, substate_idx);
+            //new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%] substate: [%] sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - cur_substate.time_left, new_substate.time_left, pressure_to_release, substate_idx, new_state.released_pressure);
 
-                // don't open if there's not enough time to move, open, and release
-                cost_to_open := neighbor_cost + 1;
-                if cur_substate.time_left <= cost_to_open continue;
+            key : d16_full_key;
+            key.cur_room = new_state.cur_room;
+            key.time_left = new_state.time_left;
+            key.first_pawn = new_state.first_pawn;
 
-                // potential new state
-                new_state : d16_search_state = d16_clone(*cur_state);
-                new_substate : *d16_search_substate = *new_state.substates[substate_idx];
-                new_substate.cur_room = neighbor;
-                new_substate.time_left = cur_substate.time_left - cost_to_open;
-                new_state.opened_valves = cur_state.opened_valves | neighbor_room.mask;
-                
-                pressure_to_release := neighbor_room.rate * new_substate.time_left;
-                new_state.released_pressure = cur_state.released_pressure + pressure_to_release;
+            default_value : [..]d16_search_state;
+            prev_states : *[..]d16_search_state = find_or_add(*full_list, key, default_value);
 
-                //new_state.solution_path = tprint("% %(%)", cur_state.solution_path, neighbor, substate_idx);
-
-                //new_state.debug_moves = tprint("%opened [%]. after minute [%] time left: [%] valve_release: [%] substate: [%] sum_release: [%]\n", cur_state.debug_moves, neighbor, 30 - cur_substate.time_left, new_substate.time_left, pressure_to_release, substate_idx, new_state.released_pressure);
-
-                key : d16_full_key;
-                for *ss : new_state.substates {
-                    v, success := table_find(*room_to_mask, ss.cur_room);
-                    assert(success);
-                    key.cur_rooms |= v;
-                }
-                key.time_left_a = new_state.substates[0].time_left;
-                if new_state.substates.count > 1 key.time_left_b = new_state.substates[1].time_left;
-
-                default_value : [..]d16_search_state;
-                prev_states : *[..]d16_search_state = find_or_add(*full_list, key, default_value);
-
-                // see if any visited state is "better" than new_state
-                found_better := false;
-                /*
-                for *prev_state : <<prev_states {
-                    was_better :: (prev: d16_search_state, new: d16_search_state) -> bool {
-                        if prev.released_pressure < new.released_pressure return false;
-                        if (prev.opened_valves & new.opened_valves) != new.opened_valves return false;
-
-                        for *prev_ss: prev.substates {
-                            new_ss := new.substates[it_index];
-                            if prev_ss.cur_room != new_ss.cur_room return false;
-                            if prev_ss.time_left < new_ss.time_left return false;
-                        }
-
-                        return true;
-                    }
-
-                    if was_better(prev_state, new_state) {
-                        found_better = false;
-                        break;
-                    }
-                } 
-                */
-
-                if !found_better {
-                   room_cmp :: (a: *d16_room, b: *d16_room) -> bool {
-                        return a.rate > b.rate;
-                    }
-
-                    // create a heuristic for this new_state
-                    scratch_rooms.count = 0;
-                    for room_to_mask {
-                        room : RoomIndex = it_index;
-                        mask : u64 = it;
-
-                        if (new_state.opened_valves & mask) == 0 {
-                            heap_push(*scratch_rooms, table_find_pointer(*graph, room), room_cmp);
-                        }
-                    }
-
-                    // minus 2 because one to move, one to open
-                    new_state.heuristic = new_state.released_pressure;
-                    time_left := 0;
-                    for ss : new_state.substates time_left = max(ss.time_left - 2);
-                    rooms_entered := 0;
-                    while scratch_rooms.count > 0 {
-                        room : *d16_room = heap_pop(*scratch_rooms, room_cmp);
-                        new_state.heuristic += time_left * room.rate;
-
-                        rooms_entered += 1;
-                        if (rooms_entered % new_state.substates.count) == 0 {
-                            time_left -= 2;
-                        }
-                    }
+            // see if any visited state is "better" than new_state
+            found_better := false;
+            for *prev_state : <<prev_states {
+                was_better :: (prev: d16_search_state, new: d16_search_state) -> bool {
+                    if prev.released_pressure < new.released_pressure return false;
+                    if (prev.opened_valves & new.opened_valves) != new.opened_valves return false;
                     
-                    // store new state
-                    //array_add(*open_list, new_state);
-                    heap_push(*open_list, new_state, open_list_cmp);
-                    array_add(prev_states, new_state);
+                    assert(prev.time_left == new.time_left);
+                    assert(prev.cur_room == new.cur_room);
+
+                    return true;
                 }
+
+                if was_better(prev_state, new_state) {
+                    found_better = false;
+                    break;
+                }
+            } 
+
+            if !found_better {
+                new_state.heuristic = d16_calc_heuristic(
+                    new_state,
+                    *scratch_rooms,
+                    valveroom_to_mask,
+                    graph,
+                    part1);
+                
+                // store new state
+                heap_push(*open_list, new_state, open_list_cmp);
+                array_add(prev_states, new_state);
             }
+        }
+
+        // start second search
+        if !part1 && cur_state.first_pawn {
+            new_state := cur_state;
+            new_state.time_left = 26;
+            new_state.cur_room = starting_room_idx;
+            new_state.first_pawn = false;
+            new_state.heuristic = d16_calc_heuristic(
+                    new_state,
+                    *scratch_rooms,
+                    valveroom_to_mask,
+                    graph,
+                    part1);
+
+            key : d16_full_key;
+            key.cur_room = new_state.cur_room;
+            key.time_left = new_state.time_left;
+            key.first_pawn = new_state.first_pawn;
+
+            default_value : [..]d16_search_state;
+            prev_states : *[..]d16_search_state = find_or_add(*full_list, key, default_value);
+
+            // store new state
+            heap_push(*open_list, new_state, open_list_cmp);
+            array_add(prev_states, new_state);
         }
     }
 
@@ -2574,13 +2563,70 @@ day16_solve :: (input: string, part1: bool) -> int {
         }
      } 
 
-    print("(debug) full mask: %\n", full_mask);
+    print("(debug) valve rooms mask: %\n", valverooms_mask);
     print("(debug) best state: %\n", <<best_state);
     print("(debug) num states searched: %\n", num_states);
     //print("(debug) moves: \n%", best_state.debug_moves);
     //print("(debug) path: %\n", best_state.solution_path);
     print("(debug) day16 partX: %\n\n\n", answer);
     return answer;
+}
+
+d16_calc_heuristic :: (
+    state: d16_search_state,
+    scratch_rooms: *[..]*d16_room,
+    valveroom_to_mask: Table(RoomIndex, u64),
+    graph: []d16_room,
+    is_part1: bool
+) -> int {
+    room_cmp :: (a: *d16_room, b: *d16_room) -> bool {
+        return a.rate > b.rate;
+    }
+
+    heuristic := state.released_pressure;
+
+    // find unopened rooms
+    scratch_rooms.count = 0;
+    for valveroom_to_mask {
+        room_idx : RoomIndex = it_index;
+        mask : u64 = it;
+
+        if (state.opened_valves & mask) == 0 {
+            room : *d16_room = *graph[room_idx];
+            heap_push(scratch_rooms, room, room_cmp);
+        }
+    }
+
+    if scratch_rooms.count == 0 return heuristic;
+
+    if is_part1 || (!is_part1 && !state.first_pawn) {
+        // minus 2 because one to move, one to open
+        time_left := state.time_left - 2;
+        while scratch_rooms.count > 0 && time_left > 0 {
+            room : *d16_room = heap_pop(scratch_rooms, room_cmp);
+            heuristic += time_left * room.rate;
+            time_left -= 2;
+        }
+    } else {
+        times_left: [2]int;
+        times_left[0] = state.time_left - 2;
+        times_left[1] = ifx state.first_pawn then 26 - 2 else 0;
+
+        while scratch_rooms.count > 0 {
+            time_idx := ifx times_left[0] > times_left[1] then 0 else 1;
+            most_time : *int = *times_left[time_idx];
+
+            if <<most_time <= 2 break;
+
+            room : *d16_room = heap_pop(scratch_rooms, room_cmp);
+            heuristic += <<most_time * room.rate;
+        
+            // minus 2 because one to move, one to open
+            most_time -= 2;
+        }
+    }
+
+    return heuristic;
 }
 
 RoomIndex :: #type,distinct int;
@@ -2594,76 +2640,598 @@ d16_room :: struct {
 }
 
 d16_search_state :: struct {
-    substates : [..]d16_search_substate;
     opened_valves : u64;
     released_pressure : int;
     heuristic : int;
-}
-
-d16_search_substate :: struct {
     cur_room : RoomIndex = -1;
     time_left : int = 30;
-}
-
-d16_clone :: (ss: *d16_search_state) -> d16_search_state {
-    result : d16_search_state;
-    result.released_pressure = ss.released_pressure;
-    result.opened_valves = ss.opened_valves;
-    //result.debug_moves = ss.debug_moves;
-    //result.solution_path = ss.solution_path;
-    for substate : ss.substates array_add(*result.substates, substate);  
-    return result;  
+    first_pawn : bool = true;
 }
 
 operator == :: (a: d16_search_state, b: d16_search_state) -> bool {
-    substates_equal :: (a: d16_search_substate, b: d16_search_substate) -> bool {
-        return a.time_left == b.time_left && a.cur_room == b.cur_room;
-    }
-
-    substates_equal :: (a: []d16_search_substate, b: []d16_search_substate) -> bool {
-        if a.count != b.count return false;
-        for a if !substates_equal(it, b[it_index]) return false;
-        return true;
-    }
-    
-    return a.released_pressure == b.released_pressure
-        && a.opened_valves == b.opened_valves
-        && substates_equal(a.substates, b.substates);
+    return a.opened_valves == b.opened_valves
+        && a.released_pressure == b.released_pressure
+        && a.heuristic == b.heuristic
+        && a.cur_room == b.cur_room
+        && a.time_left == b.time_left
+        && a.first_pawn == b.first_pawn;
 }
 
 get_hash_d16_search_state :: (v: d16_search_state) -> u32 {
     Hash :: #import "Hash";
-    result : u32 = hash_combine(
-        Hash.get_hash(v.released_pressure), 
-        Hash.get_hash(v.opened_valves));
-    for ss : v.substates {
-        result = hash_combine(result, Hash.get_hash(ss.cur_room));
-        result = hash_combine(result, Hash.get_hash(ss.time_left));
-    }
+    result : u32 = 0;
+    result = hash_combine(result, Hash.get_hash(v.opened_valves));
+    result = hash_combine(result, Hash.get_hash(v.released_pressure));
+    result = hash_combine(result, Hash.get_hash(v.heuristic));
+    result = hash_combine(result, Hash.get_hash(v.cur_room));
+    result = hash_combine(result, Hash.get_hash(v.time_left));
+    result = hash_combine(result, Hash.get_hash(v.first_pawn));
     return result;
 }
 
 d16_full_key :: struct {
-    cur_rooms: u64;
-    time_left_a: int;
-    time_left_b: int = -1;
+    cur_room: RoomIndex;
+    time_left: int;
+    first_pawn : bool;
 }
 
 operator == :: (a: d16_full_key, b: d16_full_key) -> bool {
-    return a.cur_rooms == b.cur_rooms
-        && a.time_left_a == b.time_left_a
-        && a.time_left_b == b.time_left_b;
+    return a.cur_room == b.cur_room
+        && a.time_left == b.time_left
+        && a.first_pawn == b.first_pawn;
 }
 
 get_hash_d16_full_key :: (v : d16_full_key) -> u32 {
     Hash :: #import "Hash";
     return hash_combine(
         hash_combine(
-            Hash.get_hash(v.cur_rooms),
-            Hash.get_hash(v.time_left_a)),
-        Hash.get_hash(v.time_left_b));
+            Hash.get_hash(v.cur_room),
+            Hash.get_hash(v.time_left)),
+        Hash.get_hash(v.first_pawn));
 }
 
+
+// --------------------------------------------------------
+// Day 17
+// --------------------------------------------------------
+day17 :: () {
+    day17_test();
+    day17_actual();
+}
+
+day17_test :: () {
+    input, success := read_entire_file("data/day17_example.txt");
+    assert(success);
+
+    assert(day17_solve(input, 2022) == 3068);
+    assert(day17_solve(input, 1_000_000_000_000) == 1514285714288);
+}
+
+day17_actual :: () {
+    input, success := read_entire_file("data/day17.txt");
+    assert(success);
+
+    part1 := day17_solve(input, 2022);
+    print("day17 part1: %\n", part1);
+    assert(part1 == 3048);
+
+    part2 := day17_solve(input, 1_000_000_000_000);
+    print("day17 part2: %\n", part2);
+    assert(part2 == 1504093567249);
+}
+
+day17_solve :: (input: string, iterations: s64) -> s64 {
+    board : Table(Vec2, int, get_hash);
+    cycles : Table(d17_cycle_key, d17_cycle_state, get_hash_d17_cycle_key);
+
+    piece := 0;
+    move := 0;
+    top := 0;
+
+    cur_pos : [..]Vec2;
+    maybe_pos : [..]Vec2;
+
+    overlaps :: (board: Table(Vec2, int, get_hash), piece: []Vec2) -> bool {
+        for tile: piece {
+            if tile.x < 0 || tile.x > 6 || tile.y <= 0 return true;
+
+            _, found := table_find(*board, tile);
+            if found return true;
+        }
+        return false;
+    }
+
+    draw_board :: (board: Table(Vec2, int, get_hash), piece: int, top: int) {
+        print("\n\n\nAfter Piece: %\n", piece);
+        
+        row := top + 1;
+        while row > 0 {
+            defer row -= 1;
+
+            print("|");
+            for 0..6 {
+                ifx table_contains(*board, Vec2.{it, row}) print("#")
+                else print(" ");
+            }
+            print("|\n");
+        }
+        print("+-------+\n");
+    }
+
+    cycle_height := 0;
+    found_cycle := false;
+
+    while piece < iterations {
+        defer piece += 1;
+
+        // look for cycle
+        if !found_cycle {
+            // build cycle key
+            key : d17_cycle_key;
+            key.jet = move % input.count;
+            key.piece_type = cast(u8)(piece % 5);
+            for col: 0..6 {
+                row := top;
+                while row > 0 && !table_contains(*board, Vec2.{col, row}) {
+                    row -= 1;
+                }
+                key.depth[col] = cast(u8)(top - row);
+            }
+
+            // check for cycle
+            prev, found := table_find(*cycles, key);
+            if found {
+                // compute cycle stats
+                pieces_per_cycle := piece - prev.piece;
+                pieces_left := iterations - piece;
+                num_cycles_left := pieces_left / pieces_per_cycle;
+                height_per_cycle := top - prev.top;
+                cycle_height = num_cycles_left * height_per_cycle;
+                
+                // reduce iterations to play it out
+                piece += num_cycles_left * pieces_per_cycle;
+                assert(piece < iterations);
+                found_cycle = true;
+            }
+
+            table_set(*cycles, key, d17_cycle_state.{piece, top});
+        }
+    
+        // reset
+        cur_pos.count = 0;
+
+        // initialize piece
+        spawn_bot := top + 4;
+        spawn_left := 2;
+        piece_type := piece % 5;
+        if piece_type == 0 {
+            // shape: -
+            array_add(*cur_pos, Vec2.{spawn_left, spawn_bot});
+            array_add(*cur_pos, Vec2.{spawn_left + 1, spawn_bot});
+            array_add(*cur_pos, Vec2.{spawn_left + 2, spawn_bot});
+            array_add(*cur_pos, Vec2.{spawn_left + 3, spawn_bot});
+        } else if piece_type == 1 {
+            // shape: +
+            array_add(*cur_pos, Vec2.{spawn_left, spawn_bot + 1});
+            array_add(*cur_pos, Vec2.{spawn_left + 1, spawn_bot});
+            array_add(*cur_pos, Vec2.{spawn_left + 1, spawn_bot + 1});
+            array_add(*cur_pos, Vec2.{spawn_left + 1, spawn_bot + 2});
+            array_add(*cur_pos, Vec2.{spawn_left + 2, spawn_bot + 1});
+        } else if piece_type == 2 {
+            // shape: _|
+            array_add(*cur_pos, Vec2.{spawn_left, spawn_bot});
+            array_add(*cur_pos, Vec2.{spawn_left+1, spawn_bot});
+            array_add(*cur_pos, Vec2.{spawn_left+2, spawn_bot});
+            array_add(*cur_pos, Vec2.{spawn_left+2, spawn_bot+1});
+            array_add(*cur_pos, Vec2.{spawn_left+2, spawn_bot+2});
+        } else if piece_type == 3 {
+            // shape: |
+            array_add(*cur_pos, Vec2.{spawn_left, spawn_bot});
+            array_add(*cur_pos, Vec2.{spawn_left, spawn_bot+1});
+            array_add(*cur_pos, Vec2.{spawn_left, spawn_bot+2});
+            array_add(*cur_pos, Vec2.{spawn_left, spawn_bot+3});
+        } else if piece_type == 4 {
+            // shape: box
+            array_add(*cur_pos, Vec2.{spawn_left, spawn_bot});
+            array_add(*cur_pos, Vec2.{spawn_left + 1, spawn_bot});
+            array_add(*cur_pos, Vec2.{spawn_left, spawn_bot + 1});
+            array_add(*cur_pos, Vec2.{spawn_left + 1, spawn_bot + 1});
+        } else assert(false);     
+
+        // fall until collision
+        while true {
+            defer move += 1;
+
+            // Calc jet direction
+            jet := input.data[move % input.count];
+            lateral_offset : Vec2 = ifx jet == #char "<" then Vec2.{-1,0} else Vec2.{1,0};
+
+            // maybe move left/right
+            maybe_pos.count = 0;
+            for cur_pos array_add(*maybe_pos, add(it, lateral_offset));
+            if !overlaps(board, maybe_pos) {
+                for maybe_pos cur_pos[it_index] = it;
+            }
+
+            // maybe move down
+            maybe_pos.count = 0;
+            for cur_pos array_add(*maybe_pos, add(it, Vec2.{0, -1}));
+            if overlaps(board, maybe_pos) {
+                // hit rocks
+                for cur_pos {
+                    table_set(*board, it, 0);
+                    top = max(top, it.y);
+                }
+                //draw_board(*board, piece, top);
+                break;
+            } else {
+                for maybe_pos cur_pos[it_index] = it;
+            }
+        }     
+    }
+
+    return top + cycle_height;
+}
+
+d17_cycle_key :: struct {
+    depth : [7]u8;
+    piece_type: u8;
+    jet : int;
+}
+
+d17_cycle_state :: struct {
+    piece: int;
+    top: int;
+}
+
+operator == :: (a: d17_cycle_key, b: d17_cycle_key) -> bool {
+    return a.depth[0] == b.depth[0]
+        && a.depth[1] == b.depth[1]
+        && a.depth[2] == b.depth[2]
+        && a.depth[3] == b.depth[3]
+        && a.depth[4] == b.depth[4]
+        && a.depth[5] == b.depth[5]
+        && a.depth[6] == b.depth[6]
+        && a.piece_type == b.piece_type
+        && a.jet == b.jet;
+}
+
+get_hash_d17_cycle_key :: (v : d17_cycle_key) -> u32 {
+    Hash :: #import "Hash";
+    result : u32 = 0;
+    for v.depth result = hash_combine(result, Hash.get_hash(it));
+    result = hash_combine(result, Hash.get_hash(v.piece_type));
+    result = hash_combine(result, Hash.get_hash(v.jet));
+    return result;
+}
+
+// --------------------------------------------------------
+// Day 18
+// --------------------------------------------------------
+day18 :: () {
+    day18_test();
+    day18_actual();
+}
+
+day18_test :: () {
+    input, success := read_entire_file("data/day18_example.txt");
+    assert(success);
+
+    part1, part2 := day18_solve(input);
+    assert(part1 == 64);
+    assert(part2 == 58);
+}
+
+day18_actual :: () {
+    input, success := read_entire_file("data/day18.txt");
+    assert(success);
+
+    part1, part2 := day18_solve(input);
+    print("day18 part1: %\n", part1);
+    print("day18 part2: %\n", part2);
+    assert(part1 == 3586);
+    assert(part2 == 2072);
+}
+
+day18_solve :: (input: string) -> int, int {
+    shape_min := Vec3.{10000, 10000, 10000};
+    shape_max := Vec3.{-10000, -10000, -10000};
+
+    // parse shape
+    shape : Table(Vec3, int, get_hash_vec3);
+    for line : split(input, "\r\n") {
+        parts := split(line, ",");
+        assert(parts.count == 3);
+
+        pos := Vec3.{
+            string_to_int(parts[0]),
+            string_to_int(parts[1]),
+            string_to_int(parts[2]),
+        };
+
+        shape_min.x = min(shape_min.x, pos.x);
+        shape_min.y = min(shape_min.y, pos.y);
+        shape_min.z = min(shape_min.z, pos.z);
+
+        shape_max.x = max(shape_max.x, pos.x);
+        shape_max.y = max(shape_max.y, pos.y);
+        shape_max.z = max(shape_max.z, pos.z);
+
+        table_add(*shape, pos, 0);
+    }
+
+    // part1
+    offsets : [6]Vec3;
+    offsets[0] = Vec3.{-1,0,0};
+    offsets[1] = Vec3.{1,0,0};
+    offsets[2] = Vec3.{0,-1,0};
+    offsets[3] = Vec3.{0,1,0};
+    offsets[4] = Vec3.{0,0,-1};
+    offsets[5] = Vec3.{0,0,1};
+
+    part1 := 0;
+    for shape {
+        pos := it_index;
+        for offset: offsets {
+            neighbor := pos + offset;
+            if !table_contains(*shape, neighbor) {
+                part1 += 1;
+            }
+        }
+    }
+
+
+    // part2
+    part2 := 0;
+
+    // expand shape
+    shape_min += Vec3.{-1,-1,-1};
+    shape_max += Vec3.{1,1,1};
+
+    visited : Table(Vec3, int, get_hash_vec3);
+    open_list : [..]Vec3;
+    array_add(*open_list, shape_min);
+    table_set(*visited, shape_min, 0);
+
+    while open_list.count > 0 {
+        pos := pop(*open_list);
+
+        for offset : offsets {
+            neighbor := pos + offset;
+
+            if neighbor.x < shape_min.x || neighbor.x > shape_max.x
+                || neighbor.y < shape_min.y || neighbor.y > shape_max.y
+                || neighbor.z < shape_min.z || neighbor.z > shape_max.z 
+            {
+                continue;
+            }
+
+            if table_contains(*shape, neighbor) {
+                part2 += 1;
+            }
+            else if !table_contains(*visited, neighbor) {
+                array_add(*open_list, neighbor);
+                table_set(*visited, neighbor, 0);
+            }
+        }
+    }
+
+    return part1, part2;
+}
+
+day18_part2 :: (input: string) -> int {
+
+    // parse shape
+    shape : Table(Vec3, int, get_hash_vec3);
+    for line : split(input, "\r\n") {
+        parts := split(line, ",");
+        assert(parts.count == 3);
+
+        pos := Vec3.{
+            string_to_int(parts[0]),
+            string_to_int(parts[1]),
+            string_to_int(parts[2]),
+        };
+
+        table_add(*shape, pos, 0);
+    }
+
+    return 0;
+}
+
+// --------------------------------------------------------
+// Day 19
+// --------------------------------------------------------
+day19 :: () {
+    day19_test();
+    //day19_actual();
+}
+
+day19_test :: () {
+    input, success := read_entire_file("data/day19_example.txt");
+    assert(success);
+
+    part1 := day19_solve(input);
+    print("(test) day19 part1: %\n", part1);
+}
+
+day19_actual :: () {
+    input, success := read_entire_file("data/day19.txt");
+    assert(success);
+
+    part1 := day19_solve(input);
+    print("day19 part1: %\n", part1);
+}
+
+day19_solve :: (input: string) -> int {
+
+    blueprints : [..]d19_blueprint;
+
+    // parse blueprints
+    for line : split(input, "\r\n") {
+        parts := split(line, " ");
+        assert(parts.count == 32);
+
+        // parse blueprint
+        bp : d19_blueprint;
+        bp.id = string_to_int(parts[1]);
+        bp.ore_robot_ore_cost = string_to_int(parts[6]);
+        bp.clay_robot_ore_cost = string_to_int(parts[12]);
+        bp.obsidian_robot_ore_cost = string_to_int(parts[18]);
+        bp.obsidian_robot_clay_cost = string_to_int(parts[21]);
+        bp.geode_robot_ore_cost = string_to_int(parts[27]);
+        bp.geode_robot_obsidian_cost = string_to_int(parts[30]);
+
+        array_add(*blueprints, bp);
+    }
+
+    part1 := 0;
+    for bp : blueprints {
+        visited : Table(d19_state, int, get_hash_d19_state);
+        open_list : [..]d19_state;
+        array_add(*open_list, d19_state.{});
+
+        best_geodes := 0;
+
+        while open_list.count > 0 {
+            cur_state := pop(*open_list);
+
+            new_state := cur_state;
+
+            // add resources
+            new_state.ore += new_state.ore_robots;
+            new_state.clay += new_state.clay_robots;
+            new_state.obsidian += new_state.obsidian_robots;
+            new_state.geodes += new_state.geode_robots;
+
+            // end of the line, no more time
+            if new_state.minute == 24 {
+                best_geodes = max(best_geodes, new_state.geodes);
+                continue;
+            }
+
+            new_state.minute += 1;
+
+            // create nothing
+            if !table_contains(*visited, new_state) {
+                array_add(*open_list, new_state);
+                table_set(*visited, new_state, 0);
+            }
+
+            // create an ore robot
+            if cur_state.ore >= bp.ore_robot_ore_cost {
+                s := new_state;
+                s.ore -= bp.ore_robot_ore_cost;
+                s.ore_robots += 1;
+
+                if !table_contains(*visited, s) {
+                    array_add(*open_list, s);
+                    table_set(*visited, s, 0);
+                }
+            }
+
+            // create a clay robot
+            if cur_state.ore >= bp.clay_robot_ore_cost {
+                s := new_state;
+                s.ore -= bp.clay_robot_ore_cost;
+                s.clay_robots += 1;
+                
+                if !table_contains(*visited, s) {
+                    array_add(*open_list, s);
+                    table_set(*visited, s, 0);
+                }
+            }
+
+            // create an obsidian robot
+            if cur_state.ore >= bp.obsidian_robot_ore_cost 
+                && cur_state.clay >= bp.obsidian_robot_clay_cost 
+            {
+                s := new_state;
+                s.ore -= bp.obsidian_robot_ore_cost;
+                s.clay -= bp.obsidian_robot_clay_cost;
+                s.obsidian_robots += 1;
+                
+                if !table_contains(*visited, s) {
+                    array_add(*open_list, s);
+                    table_set(*visited, s, 0);
+                }
+            }
+
+            // create a geode robot
+            if cur_state.ore >= bp.geode_robot_ore_cost
+                && cur_state.obsidian >= bp.geode_robot_obsidian_cost
+            {
+                s := new_state;
+                s.ore -= bp.geode_robot_ore_cost;
+                s.obsidian -= bp.geode_robot_obsidian_cost;
+                s.geode_robots += 1;
+                
+                if !table_contains(*visited, s) {
+                    array_add(*open_list, s);
+                    table_set(*visited, s, 0);
+                }
+            }
+        }
+
+        part1 += best_geodes * bp.id;
+    }
+
+    return part1;
+}
+
+d19_blueprint :: struct {
+    id : int;
+    ore_robot_ore_cost : int;
+    clay_robot_ore_cost: int;
+    obsidian_robot_ore_cost: int;
+    obsidian_robot_clay_cost: int;
+    geode_robot_ore_cost : int;
+    geode_robot_obsidian_cost: int;
+}
+
+d19_state :: struct {
+    minute: int = 1;
+
+    ore: int;
+    clay: int;
+    obsidian: int;
+    geodes: int;
+
+    ore_robots: int = 1;
+    clay_robots: int;
+    obsidian_robots: int;
+    geode_robots: int;
+}
+
+get_hash_d19_state :: (v: d19_state) -> u32 {
+    Hash :: #import "Hash";
+    result : u32 = 0;
+    result = hash_combine(result, Hash.get_hash(v.minute));
+
+    result = hash_combine(result, Hash.get_hash(v.ore));
+    result = hash_combine(result, Hash.get_hash(v.clay));
+    result = hash_combine(result, Hash.get_hash(v.obsidian));
+    result = hash_combine(result, Hash.get_hash(v.geodes));
+
+    result = hash_combine(result, Hash.get_hash(v.ore_robots));
+    result = hash_combine(result, Hash.get_hash(v.clay_robots));
+    result = hash_combine(result, Hash.get_hash(v.obsidian_robots));
+    result = hash_combine(result, Hash.get_hash(v.geode_robots));
+
+    return result;
+}
+
+operator == :: (a: d19_state, b: d19_state) -> bool {
+    return a.minute == b.minute
+        && a.ore == b.ore
+        && a.clay == b.clay
+        && a.obsidian == b.obsidian
+        && a.geodes == b.geodes
+        && a.ore_robots == b.ore_robots
+        && a.clay_robots == b.clay_robots
+        && a.obsidian_robots == b.obsidian_robots
+        && a.geode_robots == b.geode_robots;
+}
 
 #import "Basic";
 #import "Compiler";
