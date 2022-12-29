@@ -3064,6 +3064,7 @@ day19_actual :: () {
 }
 
 day19_solve :: (input: string) -> int {
+    num_minutes :: 23;
 
     blueprints : [..]d19_blueprint;
 
@@ -3087,12 +3088,18 @@ day19_solve :: (input: string) -> int {
 
     part1 := 0;
     for bp : blueprints {
+        best_geodes := 0;
+
+        max_ore_robots := max(bp.ore_robot_ore_cost, bp.clay_robot_ore_cost);
+        max_ore_robots = max(max_ore_robots, bp.obsidian_robot_ore_cost);
+        max_ore_robots = max(max_ore_robots, bp.geode_robot_ore_cost);
+
+        // prepare search
         visited : Table(d19_state, int, get_hash_d19_state);
         open_list : [..]d19_state;
         array_add(*open_list, d19_state.{});
 
-        best_geodes := 0;
-
+        // exhaustive search
         while open_list.count > 0 {
             cur_state := pop(*open_list);
 
@@ -3105,12 +3112,24 @@ day19_solve :: (input: string) -> int {
             new_state.geodes += new_state.geode_robots;
 
             // end of the line, no more time
-            if new_state.minute == 24 {
+            if new_state.minute == num_minutes {
                 best_geodes = max(best_geodes, new_state.geodes);
                 continue;
             }
 
             new_state.minute += 1;
+
+            // if goal and resources
+                // build robot
+                // clear goal
+            // if no goal
+                // make ore goal
+                // make clay goal
+                // if have clay production make obsidian goal
+                // if have obsidian production make geode goal
+
+                
+/*
 
             // create nothing
             if !table_contains(*visited, new_state) {
@@ -3119,7 +3138,10 @@ day19_solve :: (input: string) -> int {
             }
 
             // create an ore robot
-            if cur_state.ore >= bp.ore_robot_ore_cost {
+            // don't build too many
+            if cur_state.ore_robots <= max_ore_robots 
+                && cur_state.ore >= bp.ore_robot_ore_cost 
+            {
                 s := new_state;
                 s.ore -= bp.ore_robot_ore_cost;
                 s.ore_robots += 1;
@@ -3171,6 +3193,7 @@ day19_solve :: (input: string) -> int {
                     table_set(*visited, s, 0);
                 }
             }
+*/
         }
 
         part1 += best_geodes * bp.id;
@@ -3191,6 +3214,8 @@ d19_blueprint :: struct {
 
 d19_state :: struct {
     minute: int = 1;
+
+    goal: int = 0;
 
     ore: int;
     clay: int;
