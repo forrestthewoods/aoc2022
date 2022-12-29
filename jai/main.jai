@@ -3051,7 +3051,7 @@ day19_test :: () {
     input, success := read_entire_file("data/day19_example.txt");
     assert(success);
 
-    part1 := day19_solve(input);
+    part1 := day19_solve(input, true);
     print("(test) day19 part1: %\n", part1);
 }
 
@@ -3059,13 +3059,14 @@ day19_actual :: () {
     input, success := read_entire_file("data/day19.txt");
     assert(success);
 
-    part1 := day19_solve(input);
+    part1 := day19_solve(input, true);
     print("day19 part1: %\n", part1);
     assert(part1 == 1653);
 }
 
-day19_solve :: (input: string) -> int {
-    num_minutes :: 24;
+day19_solve :: (input: string, is_part1: bool) -> int {
+    // minutes depends on part
+    num_minutes := ifx is_part1 then 24 else 32;
 
     blueprints : [..]d19_blueprint;
 
@@ -3085,6 +3086,11 @@ day19_solve :: (input: string) -> int {
         bp.geode_robot_obsidian_cost = string_to_int(parts[30]);
 
         array_add(*blueprints, bp);
+    }
+
+    // only top 3 blueprints for part 2
+    if !is_part1 {
+        blueprints.count = min(blueprints.count, 3);
     }
 
     part1 := 0;
