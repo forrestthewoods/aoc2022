@@ -3580,7 +3580,7 @@ d21_node :: struct {
 // --------------------------------------------------------
 day22 :: () {
     day22_test();
-    //day22_actual();
+    day22_actual();
 }
 
 day22_test :: () {
@@ -3589,6 +3589,7 @@ day22_test :: () {
 
     part1 := day22_solve(input);
     print("(test) day22 part1: %\n", part1);
+    assert(part1 == 6032);
 
     // part2 := day22_solve(input);
     // print("(test) day22 part2: %\n", part2);
@@ -3600,6 +3601,7 @@ day22_actual :: () {
 
     part1 := day22_solve(input);
     print("day22 part1: %\n", part1);
+    assert(part1 == 89224);
 
     // part2 := day22_solve(input);
     // print("day22 part2: %\n", part2);
@@ -3609,14 +3611,18 @@ day22_solve :: (input: string) -> int {
     BoardTile :: #type,distinct u8;
     FacingDir :: #type,distinct u8;
 
-    EMPTY : BoardTile : 0;
-    OPEN : BoardTile : 1;
-    WALL : BoardTile : 2;
+    EMPTY           : BoardTile : 0;
+    OPEN            : BoardTile : 1;
+    WALL            : BoardTile : 2;
+    PLAYER_LEFT     : BoardTile : 3;
+    PLAYER_RIGHT    : BoardTile : 4;
+    PLAYER_UP       : BoardTile : 5;
+    PLAYER_DOWN     : BoardTile : 6;
 
-    LEFT : FacingDir: 2;
-    UP : FacingDir: 3;
-    RIGHT : FacingDir: 0;
-    DOWN : FacingDir: 1;
+    RIGHT   : FacingDir: 0;
+    DOWN    : FacingDir: 1;
+    LEFT    : FacingDir: 2;
+    UP      : FacingDir: 3;
 
     dirs : [4]Vec2;
     dirs[LEFT]  = Vec2.{-1, 0};
@@ -3631,14 +3637,17 @@ day22_solve :: (input: string) -> int {
     assert(parts.count == 2);
 
     // parse board
-    board_lines := split(parts[0], "\r\n");
+    board_rows := split(parts[0], "\r\n");
 
-    board_width := board_lines[0].count;
-    board_height := board_lines.count;
+    // determine board size
+    board_width := 0; 
+    board_height := board_rows.count;
+    for row:board_rows board_width = max(board_width, row.count);
+
     start_pos := -1;
-    for line : board_lines {
-        for idx:0..line.count-1 {
-            c := line[idx];
+    for row : board_rows {
+        for idx:0..row.count-1 {
+            c := row[idx];
 
             tile : BoardTile;
             if c == #char " " tile = EMPTY;
@@ -3654,6 +3663,10 @@ day22_solve :: (input: string) -> int {
 
             array_add(*board, tile);
         }
+
+        // pad row
+        pad := board_width - row.count;
+        for 0..pad -1 array_add(*board, EMPTY);        
     }
 
     // helper functions
@@ -3687,11 +3700,13 @@ day22_solve :: (input: string) -> int {
     cur_facing := RIGHT;
 
     debug_positions : [..]Vec2;
+    debug_facing : [..]FacingDir;
 
     // Process moves
     moves : string = parts[1];
     while moves.count > 0 {
         array_add(*debug_positions, cur_pos);
+        array_add(*debug_facing, cur_facing);
 
         // parse number
         digits := stop_at_any(moves, "LR");
@@ -3710,6 +3725,8 @@ day22_solve :: (input: string) -> int {
             if maybe_tile == OPEN {
                 // move into open spot
                 cur_pos = maybe_pos;
+                array_add(*debug_positions, cur_pos);
+                array_add(*debug_facing, cur_facing);
             } else if maybe_tile == WALL {
                 // stop at wall
                 break;
@@ -3721,7 +3738,11 @@ day22_solve :: (input: string) -> int {
                     maybe_tile = board[maybe_idx];
                 }             
 
-                if maybe_tile == OPEN cur_pos = maybe_pos;
+                if maybe_tile == OPEN {
+                    cur_pos = maybe_pos;
+                    array_add(*debug_positions, cur_pos);
+                    array_add(*debug_facing, cur_facing);
+                }
                 else if maybe_tile == WALL break;
                 else assert(false);
             }
@@ -3738,6 +3759,23 @@ day22_solve :: (input: string) -> int {
         }
     }
     array_add(*debug_positions, cur_pos);
+    array_add(*debug_facing, cur_facing);
+
+    // modify board
+    assert(debug_positions.count == debug_facing.count);
+    for idx: 0..debug_positions.count - 1 {
+        pos := debug_positions[idx];
+        facing := debug_facing[idx];
+
+        board_idx := pos.y*board_width + pos.x;
+        tile : BoardTile;
+        if facing == LEFT tile = PLAYER_LEFT;
+        if facing == RIGHT tile = PLAYER_RIGHT;
+        if facing == UP tile = PLAYER_UP;
+        if facing == DOWN tile = PLAYER_DOWN;
+
+        board[board_idx] = tile;
+    }    
 
     print_board :: (board: []BoardTile, width: int) {
         builder : String_Builder;
@@ -3749,6 +3787,11 @@ day22_solve :: (input: string) -> int {
                 if tile == EMPTY append(*builder, " ");
                 else if tile == OPEN append(*builder, ".");
                 else if tile == WALL append(*builder, "#");
+                else if tile == PLAYER_LEFT append(*builder, "<");
+                else if tile == PLAYER_RIGHT append(*builder, ">");
+                else if tile == PLAYER_UP append(*builder, "^");
+                else if tile == PLAYER_DOWN append(*builder, "v");
+                else assert(false);
 
                 idx += 1;
             }
@@ -3758,13 +3801,14 @@ day22_solve :: (input: string) -> int {
         s : string = builder_to_string(*builder);
         print("%\n", s);
     }
-
     print_board(board, board_width);
 
+    cur_pos += Vec2.{1,1}; // convert
     print("final pos: %\n", cur_pos);
 
-    part1 := 1000 * (cur_pos.y+1) + 4*cur_pos.x + cast(int)cur_facing;
+    part1 := 1000 * (cur_pos.y) + 4*cur_pos.x + cast(int)cur_facing;
 
+    // 89220 - too low
     return part1;
 }
 
