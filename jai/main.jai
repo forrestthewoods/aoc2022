@@ -3447,7 +3447,8 @@ day21_actual :: () {
     part1, part2 := day21_solve(input);
     print("day21 part1: %\n", part1);
     print("day21 part2: %\n", part2);
-    //assert(part1 == 54703080378102);
+    assert(part1 == 54703080378102);
+    assert(part2 == 3952673930912);
 }
 
 day21_solve :: (input: string) -> s64, s64 {
@@ -3506,22 +3507,10 @@ day21_solve :: (input: string) -> s64, s64 {
                 else if node.op == "/" node.value = a.value / b.value;
                 else assert(false);
 
-                if node.has_human print("% % % = %\n", a.value, node.op, b.value, node.value);
-
                 node.has_value = true;
             }
         }
     }
-
-    ra := table_find_pointer(*nodes, root.a);
-    rb := table_find_pointer(*nodes, root.b);
-    print("root: % == %\n", ra.value, rb.value);
-
-    // print nodes for debugging
-    // for *nodes {
-    //     if it.a != "" print("% = % % % = % (%)\n", it.name, it.a, it.op, it.b, it.value, ifx it.has_human then "HAS_HUMAN" else "");
-    //     else print("% = %\n", it.name, it.value);
-    // }
 
     // solve part 1
     part1 := root.value;
@@ -3534,29 +3523,39 @@ day21_solve :: (input: string) -> s64, s64 {
         b := table_find_pointer(*nodes, node.b);
         assert(a.has_human != b.has_human);
 
-        next := ifx a.has_human then a else b;
-        other := ifx a == next then b else a;
-
+        // a.value OP b.value = prev
         prev := part2;
 
-        if node.name == "root" part2 = other.value;
-        else if node.op == "+" part2 -= other.value;
-        else if node.op == "-" part2 += other.value;
-        else if node.op == "*" part2 /= other.value;
-        else if node.op == "/" part2 *= other.value;
-        else assert(false);
+        if node.name == "root" {
+            next := ifx a.has_human then a else b;
+            other := ifx next == a then b else a;
 
-        if node.name != "root" {
-            print("   (%) % % == %\n", part2, node.op, other.value, prev);
-            //if next == a    print("   (%) % % == %\n", part2, node.op, other.value, prev);
-            //else            print("   % % (%) == %\n", other.value, node.op, part2, prev);
+            part2 = other.value;
+            node = next;
         }
+        else {
+            if a.has_human {
+                // part2 OP b.value = prev
+                if node.op == "+" part2 = prev - b.value;       // p2 + b = prev; p2 = prev - b
+                else if node.op == "-" part2 = prev + b.value;  // p2 - b = prev; p2 = prev + b
+                else if node.op == "*" part2 = prev / b.value;  // p2 * b = prev; p2 = prev / b
+                else if node.op == "/" part2 = prev * b.value;  // p2 / b = prev; p2 = prev * b
+                else assert(false);
 
-        node = next;
+                node = a;
+            } else {
+                // a.value OP part2 = prev
+                if node.op == "+" part2 = prev - a.value;       // a + p2 = prev; p2 = prev - a
+                else if node.op == "-" part2 = a.value - prev;  // a - p2 = prev; p2 = a - prev
+                else if node.op == "*" part2 = prev / a.value;  // a * p2 = prev; p2 = prev / a
+                else if node.op == "/" part2 = a.value / prev;  // a / p2 = prev; p2 = a / prev;
+                else assert(false);
+
+                node = b;
+            }
+        }
     }
 
-    // 54703080378102 - too high
-    // 7771116808145 - too high
     return part1, part2;
 }
 
