@@ -3317,7 +3317,7 @@ operator == :: (a: d19_state, b: d19_state) -> bool {
 // --------------------------------------------------------
 day20 :: () {
     day20_test();
-    day20_actual();
+    //day20_actual();
 }
 
 day20_test :: () {
