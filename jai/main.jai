@@ -25,7 +25,8 @@ main :: () {
     // day18();
     // day19();
     // day20();
-    day21();
+    // day21();
+    day22();
 }
 
 
@@ -147,6 +148,10 @@ add :: (a: Vec2, b: Vec2) -> Vec2 {
     return result;
 }
 
+operator + :: (a: Vec2, b: Vec2) -> Vec2 {
+    return add(a,b);
+}
+
 subtract :: (a: Vec2, b: Vec2) -> Vec2 {
     result : Vec2;
     result.x = a.x - b.x;
@@ -197,7 +202,7 @@ hash_combine :: (seed: u32, v: u32) -> u32 {
 }
 
 slice :: (s: string, start: s64) -> string {
-    assert(start >= 0 && start < s.count);
+    if start >= s.count return "";
     
     result := s;
     result.data += start;
@@ -3568,6 +3573,199 @@ d21_node :: struct {
     a: string;
     b: string;
     op: string;
+}
+
+// --------------------------------------------------------
+// Day 22
+// --------------------------------------------------------
+day22 :: () {
+    day22_test();
+    //day22_actual();
+}
+
+day22_test :: () {
+    input, success := read_entire_file("data/day22_example.txt");
+    assert(success);
+
+    part1 := day22_solve(input);
+    print("(test) day22 part1: %\n", part1);
+
+    // part2 := day22_solve(input);
+    // print("(test) day22 part2: %\n", part2);
+}
+
+day22_actual :: () {
+    input, success := read_entire_file("data/day22.txt");
+    assert(success);
+
+    part1 := day22_solve(input);
+    print("day22 part1: %\n", part1);
+
+    // part2 := day22_solve(input);
+    // print("day22 part2: %\n", part2);
+}
+
+day22_solve :: (input: string) -> int {
+    BoardTile :: #type,distinct u8;
+    FacingDir :: #type,distinct u8;
+
+    EMPTY : BoardTile : 0;
+    OPEN : BoardTile : 1;
+    WALL : BoardTile : 2;
+
+    LEFT : FacingDir: 2;
+    UP : FacingDir: 3;
+    RIGHT : FacingDir: 0;
+    DOWN : FacingDir: 1;
+
+    dirs : [4]Vec2;
+    dirs[LEFT]  = Vec2.{-1, 0};
+    dirs[UP]    = Vec2.{0, -1};
+    dirs[RIGHT] = Vec2.{1, 0};
+    dirs[DOWN]  = Vec2.{0, 1};
+
+    // parse input
+    board : [..]BoardTile;
+
+    parts := split(input, "\r\n\r\n");
+    assert(parts.count == 2);
+
+    // parse board
+    board_lines := split(parts[0], "\r\n");
+
+    board_width := board_lines[0].count;
+    board_height := board_lines.count;
+    start_pos := -1;
+    for line : board_lines {
+        for idx:0..line.count-1 {
+            c := line[idx];
+
+            tile : BoardTile;
+            if c == #char " " tile = EMPTY;
+            else if c == #char "." tile = OPEN;
+            else if c == #char "#" tile = WALL;
+            else assert(false);
+
+            // starting pos is first open tile on first line
+            if start_pos == -1 && tile == OPEN {
+                start_pos = idx;
+                assert(idx < board_width);
+            }
+
+            array_add(*board, tile);
+        }
+    }
+
+    // helper functions
+    turn :: (cur_facing: FacingDir, turn_left: bool) -> FacingDir {
+        if turn_left {
+            if cur_facing == LEFT return DOWN;
+            else if cur_facing == DOWN return RIGHT;
+            else if cur_facing == RIGHT return UP;
+            else if cur_facing == UP return LEFT;
+        } else {
+            if cur_facing == LEFT return UP;
+            else if cur_facing == DOWN return LEFT;
+            else if cur_facing == RIGHT return DOWN;
+            else if cur_facing == UP return RIGHT;
+        }
+        assert(false);
+        return LEFT;
+    }
+
+    wrap :: (pos: Vec2, width: int, height: int) -> Vec2 {
+        p := pos;
+        if p.x < 0 p.x = width - 1;
+        else if p.x >= width p.x = 0;
+        if p.y < 0 p.y = height - 1;
+        else if p.y >= height p.y = 0;
+        return p;
+    }
+
+    // Initialize position
+    cur_pos := Vec2.{start_pos, 0};
+    cur_facing := RIGHT;
+
+    debug_positions : [..]Vec2;
+
+    // Process moves
+    moves : string = parts[1];
+    while moves.count > 0 {
+        array_add(*debug_positions, cur_pos);
+
+        // parse number
+        digits := stop_at_any(moves, "LR");
+        amount := string_to_int(digits);
+        moves = slice(moves, digits.count);
+
+        // advance
+        cur_dir := dirs[cur_facing];
+        for 0..amount-1 {
+            // advance pos
+            maybe_pos := wrap(cur_pos + cur_dir, board_width, board_height);
+
+            // check tile
+            maybe_idx := maybe_pos.y * board_width + maybe_pos.x;
+            maybe_tile := board[maybe_idx];
+            if maybe_tile == OPEN {
+                // move into open spot
+                cur_pos = maybe_pos;
+            } else if maybe_tile == WALL {
+                // stop at wall
+                break;
+            } else if maybe_tile == EMPTY {
+                // fly through space
+                while maybe_tile == EMPTY {
+                    maybe_pos = wrap(maybe_pos + cur_dir, board_width, board_height);
+                    maybe_idx = maybe_pos.y * board_width + maybe_pos.x;
+                    maybe_tile = board[maybe_idx];
+                }             
+
+                if maybe_tile == OPEN cur_pos = maybe_pos;
+                else if maybe_tile == WALL break;
+                else assert(false);
+            }
+        }
+
+        // process turn
+        if moves.count > 0 {
+            // read single character
+            assert(moves[0] == #char "L" || moves[0] == #char "R");
+            turn_left := moves[0] == #char "L";
+            moves = slice(moves, 1);
+
+            cur_facing = turn(cur_facing, turn_left);
+        }
+    }
+    array_add(*debug_positions, cur_pos);
+
+    print_board :: (board: []BoardTile, width: int) {
+        builder : String_Builder;
+        init_string_builder(*builder);
+        idx := 0;
+        while idx < board.count {
+            for 0..width-1 {
+                tile := board[idx];
+                if tile == EMPTY append(*builder, " ");
+                else if tile == OPEN append(*builder, ".");
+                else if tile == WALL append(*builder, "#");
+
+                idx += 1;
+            }
+            append(*builder, "\n");
+        }
+
+        s : string = builder_to_string(*builder);
+        print("%\n", s);
+    }
+
+    print_board(board, board_width);
+
+    print("final pos: %\n", cur_pos);
+
+    part1 := 1000 * (cur_pos.y+1) + 4*cur_pos.x + cast(int)cur_facing;
+
+    return part1;
 }
 
 #import "Basic";
