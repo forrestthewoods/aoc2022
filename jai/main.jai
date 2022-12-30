@@ -24,7 +24,8 @@ main :: () {
     // day17();
     // day18();
     // day19();
-    day20();
+    // day20();
+    day21();
 }
 
 
@@ -3418,6 +3419,107 @@ d20_node :: struct {
     value: s64;
     prev: int;
     next: int;
+}
+
+// --------------------------------------------------------
+// Day 21
+// --------------------------------------------------------
+day21 :: () {
+    day21_test();
+    day21_actual();
+}
+
+day21_test :: () {
+    input, success := read_entire_file("data/day21_example.txt");
+    assert(success);
+
+    part1 := day21_solve(input);
+    print("(test) day21 part1: %\n", part1);
+    assert(part1 == 152);
+
+    // part2 := day21_solve(input);
+    // print("(test) day21 part2: %\n", part2);
+}
+
+day21_actual :: () {
+    input, success := read_entire_file("data/day21.txt");
+    assert(success);
+
+    part1 := day21_solve(input);
+    print("day21 part1: %\n", part1);
+    assert(part1 == 54703080378102);
+
+    //part2 := day21_solve(input);
+    //print("day21 part2: %\n", part2);
+}
+
+day21_solve :: (input: string) -> s64 {
+    
+    // parse input
+    nodes : Table(string, d21_node);
+    for line : split(input, "\r\n") {
+        parts := split(line, " ");
+        assert(parts.count == 2 || parts.count == 4);
+
+        if parts.count == 2 {
+            name := trim(parts[0], ":");
+            value := string_to_int(parts[1]);
+            table_set(*nodes, name, d21_node.{name=name, value=value, has_value = true});
+        } else {
+            name := trim(parts[0], ":");
+            a := parts[1];
+            op := parts[2];
+            b := parts[3];
+            
+            table_set(*nodes, name, d21_node.{
+                name=name, 
+                a=a,
+                op=op,
+                b=b
+            });
+        }
+    }
+
+    // solve
+    root : *d21_node = table_find_pointer(*nodes, "root");
+    while !root.has_value {
+        for *nodes {
+            node : *d21_node = it;
+            if !node.has_value {
+                // have our dependencies solved?
+                a := table_find_pointer(*nodes, node.a);
+                if !a.has_value continue;
+                b := table_find_pointer(*nodes, node.b);
+                if !b.has_value continue;
+
+                if node.op == "+" node.value = a.value + b.value;
+                else if node.op == "-" node.value = a.value - b.value;
+                else if node.op == "*" node.value = a.value * b.value;
+                else if node.op == "/" node.value = a.value / b.value;
+                else assert(false);
+
+                node.has_value = true;
+            }
+        }
+    }
+
+    for *nodes {
+        if it.a != "" print("% = % % % = %\n", it.name, it.a, it.op, it.b, it.value);
+        else print("% = %\n", it.name, it.value);
+    }
+
+    print("answer: %\n", root.value);
+    return root.value;
+}
+
+d21_node :: struct {
+    name: string;
+    value: int;
+    has_value : bool = false;
+
+    a: string;
+    b: string;
+    op: string;
 }
 
 #import "Basic";
