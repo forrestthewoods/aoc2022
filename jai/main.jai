@@ -3317,7 +3317,7 @@ operator == :: (a: d19_state, b: d19_state) -> bool {
 // --------------------------------------------------------
 day20 :: () {
     day20_test();
-    //day20_actual();
+    day20_actual();
 }
 
 day20_test :: () {
@@ -3331,10 +3331,6 @@ day20_test :: () {
     part2 := day20_solve(input, false);
     print("(test) day20 part2: %\n", part2);
     assert(part2 == 1623178306);
-
-    // part2 := day20_solve(input, false);
-    // print("(test) day20 part2: %\n", part2);
-    // assert(part2 == 3472);
 }
 
 day20_actual :: () {
@@ -3347,126 +3343,77 @@ day20_actual :: () {
 
     part2 := day20_solve(input, false);
     print("day20 part2: %\n", part2);
+    assert(part2 == 2455057187825);
 }
 
 day20_solve :: (input: string, is_part1: bool) -> s64 {
     zero_idx := 0;
     decryption_key :: 811589153;
 
+    rem :: (a: s64, b: s64) -> s64 {
+        assert(b > 0);
+
+        rem := a;
+        if rem > 0 {
+            rem -= (rem/b) * b;
+        } else {
+            rem += (Math.abs(rem) / b + 1) * b;
+        }
+
+        return rem;
+    }
+
     // parse input
-    nums : [..]d20_node;
+    values : [..]s64;
+    indices : [..]int;
     lines := split(input, "\r\n");
     for line : lines {
-        prev := it_index - 1;
-        next := it_index + 1;
         value := string_to_int(line);
-        if prev == -1 prev = lines.count - 1;
-        if next == lines.count next = 0;
+        index := indices.count;
 
-        if value == 0 zero_idx = nums.count;
+        // look for zero
+        if value == 0 zero_idx = values.count;
 
+        // apply decryption key for part2
         if !is_part1 value *= decryption_key;
 
-        array_add(*nums, d20_node.{value, prev, next});
+        // store value/index
+        array_add(*values, value);
+        array_add(*indices, index);
     }
 
-    // mix the encrypted file
-    // print("Unmixed: ");
-    // for nums print("%  ", it.value);
-    // print("\n");
+    count := values.count;
 
     num_mixes := ifx is_part1 then 1 else 10;
-
     for 0..num_mixes - 1 {
-        for idx: 0..nums.count - 1 {
-            // 0 doesn't move
-            if idx == zero_idx continue;
+        for i: 0..count - 1 {
+            value := values[i];
 
-            init_prev := nums[idx].prev;
-            init_next := nums[idx].next;
-            init_value := nums[idx].value;
+            // find where the current value lives in the list
+            cur_index := 0;
+            while indices[cur_index] != i cur_index += 1;
 
-            //print( "    Moving %", init_value);
+            // remove element from indices
+            array_ordered_remove_by_index(*indices, cur_index);
+            
+            // calculate new spot for element
+            new_index := rem(cur_index + value, count - 1);
+            array_insert_at(*indices, i, new_index);
 
-            // remove from initial spot
-            nums[init_prev].next = init_next;
-            nums[init_next].prev = init_prev;
-
-            lo_idx := -1;
-            hi_idx := -1;
-
-            if init_value > 0 {
-                // follower "pointers" forward
-                insert_idx := idx;
-                steps := init_value;
-
-                // minus one because we removed this element
-                if steps > 2*nums.count steps = steps % (nums.count - 1);
-                //else steps = -((Math.abs(steps) % nums.count));
-
-                for 0..steps - 1 {
-                    insert_idx = nums[insert_idx].next;
-                }
-
-                lo_idx = insert_idx;
-                hi_idx = nums[insert_idx].next;
-            } else {
-                // follow "pointers" backwards
-                insert_idx := idx;
-                for 0..Math.abs(init_value) -1 {
-                    insert_idx = nums[insert_idx].prev;
-                }
-
-                hi_idx = insert_idx;
-                lo_idx = nums[insert_idx].prev;
-            }
-            assert(lo_idx != -1);
-            assert(hi_idx != -1);
-
-            // insert between
-            //print("   Insert between % and %:   ", nums[lo_idx].value, nums[hi_idx].value);
-            nums[idx].prev = lo_idx;
-            nums[idx].next = hi_idx;
-            nums[lo_idx].next = idx;
-            nums[hi_idx].prev = idx;
-
-
-            // i := zero_idx;
-            // for 0..count {
-            //     print("% ", nums[i].value);
-            //     i = nums[i].next;
-            // }
-            // print("\n");
+            //print_nums(tprint("  After %: ", i), values, indices);
         }
-    }
+    }   
 
-    // print("Mixed: ");
-    // idx := zero_idx;
-    // for 0..count {
-    //     print("% ", nums[idx].value);
-    //     idx = nums[idx].next;
-    // }
-    // print("\n");
+    // find where zero is
+    final_zero_idx := 0;
+    while indices[final_zero_idx] != zero_idx final_zero_idx += 1;
 
+    // compute answer
+    answer := values[indices[(final_zero_idx + 1000) % count]]
+        + values[indices[(final_zero_idx + 2000) % count]]
+        + values[indices[(final_zero_idx + 3000) % count]];
 
-    all_steps : [3]int;
-    all_steps[0] = 1000;
-    all_steps[1] = 2000;
-    all_steps[2] = 3000;
-
-    part1 := 0;
-    for steps : all_steps {
-        actual_steps := steps % nums.count;
-
-        idx := zero_idx;
-        for 0..actual_steps-1 {
-            idx = nums[idx].next;
-        }
-        //print("% (%) after 0 is: %\n", steps, actual_steps, nums[idx].value);
-        part1 += nums[idx].value;
-    }
-
-    return part1;
+    return answer;
 }
 
 d20_node :: struct {
