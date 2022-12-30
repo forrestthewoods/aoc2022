@@ -3399,8 +3399,6 @@ day20_solve :: (input: string, is_part1: bool) -> s64 {
             // calculate new spot for element
             new_index := rem(cur_index + value, count - 1);
             array_insert_at(*indices, i, new_index);
-
-            //print_nums(tprint("  After %: ", i), values, indices);
         }
     }   
 
