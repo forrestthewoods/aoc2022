@@ -3433,28 +3433,24 @@ day21_test :: () {
     input, success := read_entire_file("data/day21_example.txt");
     assert(success);
 
-    part1 := day21_solve(input);
+    part1, part2 := day21_solve(input);
     print("(test) day21 part1: %\n", part1);
+    print("(test) day21 part2: %\n", part2);
     assert(part1 == 152);
-
-    // part2 := day21_solve(input);
-    // print("(test) day21 part2: %\n", part2);
+    assert(part2 == 301);
 }
 
 day21_actual :: () {
     input, success := read_entire_file("data/day21.txt");
     assert(success);
 
-    part1 := day21_solve(input);
+    part1, part2 := day21_solve(input);
     print("day21 part1: %\n", part1);
-    assert(part1 == 54703080378102);
-
-    //part2 := day21_solve(input);
-    //print("day21 part2: %\n", part2);
+    print("day21 part2: %\n", part2);
+    //assert(part1 == 54703080378102);
 }
 
-day21_solve :: (input: string) -> s64 {
-    
+day21_solve :: (input: string) -> s64, s64 {
     // parse input
     nodes : Table(string, d21_node);
     for line : split(input, "\r\n") {
@@ -3464,7 +3460,15 @@ day21_solve :: (input: string) -> s64 {
         if parts.count == 2 {
             name := trim(parts[0], ":");
             value := string_to_int(parts[1]);
-            table_set(*nodes, name, d21_node.{name=name, value=value, has_value = true});
+
+            //if name == "humn" value = 7771116808145;
+
+            table_set(*nodes, name, d21_node.{
+                name=name, 
+                value=value, 
+                has_value = true,
+                has_human = name == "humn"
+            });
         } else {
             name := trim(parts[0], ":");
             a := parts[1];
@@ -3492,30 +3496,75 @@ day21_solve :: (input: string) -> s64 {
                 b := table_find_pointer(*nodes, node.b);
                 if !b.has_value continue;
 
+                // update human flag
+                node.has_human = a.has_human || b.has_human;
+
+                // solve
                 if node.op == "+" node.value = a.value + b.value;
                 else if node.op == "-" node.value = a.value - b.value;
                 else if node.op == "*" node.value = a.value * b.value;
                 else if node.op == "/" node.value = a.value / b.value;
                 else assert(false);
 
+                if node.has_human print("% % % = %\n", a.value, node.op, b.value, node.value);
+
                 node.has_value = true;
             }
         }
     }
 
-    for *nodes {
-        if it.a != "" print("% = % % % = %\n", it.name, it.a, it.op, it.b, it.value);
-        else print("% = %\n", it.name, it.value);
+    ra := table_find_pointer(*nodes, root.a);
+    rb := table_find_pointer(*nodes, root.b);
+    print("root: % == %\n", ra.value, rb.value);
+
+    // print nodes for debugging
+    // for *nodes {
+    //     if it.a != "" print("% = % % % = % (%)\n", it.name, it.a, it.op, it.b, it.value, ifx it.has_human then "HAS_HUMAN" else "");
+    //     else print("% = %\n", it.name, it.value);
+    // }
+
+    // solve part 1
+    part1 := root.value;
+
+    // solve part2
+    node := root;
+    part2 : s64 = 0; 
+    while node.name != "humn" {
+        a := table_find_pointer(*nodes, node.a);
+        b := table_find_pointer(*nodes, node.b);
+        assert(a.has_human != b.has_human);
+
+        next := ifx a.has_human then a else b;
+        other := ifx a == next then b else a;
+
+        prev := part2;
+
+        if node.name == "root" part2 = other.value;
+        else if node.op == "+" part2 -= other.value;
+        else if node.op == "-" part2 += other.value;
+        else if node.op == "*" part2 /= other.value;
+        else if node.op == "/" part2 *= other.value;
+        else assert(false);
+
+        if node.name != "root" {
+            print("   (%) % % == %\n", part2, node.op, other.value, prev);
+            //if next == a    print("   (%) % % == %\n", part2, node.op, other.value, prev);
+            //else            print("   % % (%) == %\n", other.value, node.op, part2, prev);
+        }
+
+        node = next;
     }
 
-    print("answer: %\n", root.value);
-    return root.value;
+    // 54703080378102 - too high
+    // 7771116808145 - too high
+    return part1, part2;
 }
 
 d21_node :: struct {
     name: string;
-    value: int;
+    value: s64;
     has_value : bool = false;
+    has_human : bool = false;
 
     a: string;
     b: string;
