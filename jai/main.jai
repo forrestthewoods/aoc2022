@@ -3580,19 +3580,19 @@ d21_node :: struct {
 // --------------------------------------------------------
 day22 :: () {
     day22_test();
-    day22_actual();
+    //day22_actual();
 }
 
 day22_test :: () {
     input, success := read_entire_file("data/day22_example.txt");
     assert(success);
 
-    part1 := day22_solve(input);
-    print("(test) day22 part1: %\n", part1);
-    assert(part1 == 6032);
+    // part1 := day22_solve(input);
+    // print("(test) day22 part1: %\n", part1);
+    // assert(part1 == 6032);
 
-    // part2 := day22_solve(input);
-    // print("(test) day22 part2: %\n", part2);
+    part2 := day22_solve_part2(input, true);
+    print("(test) day22 part2: %\n", part2);
 }
 
 day22_actual :: () {
@@ -3807,9 +3807,296 @@ day22_solve :: (input: string) -> int {
     print("final pos: %\n", cur_pos);
 
     part1 := 1000 * (cur_pos.y) + 4*cur_pos.x + cast(int)cur_facing;
-
-    // 89220 - too low
     return part1;
+}
+
+day22_solve_part2 :: (input: string, example: bool) -> int {
+    face_size := ifx example then 4 else 50;
+    
+    BoardTile :: enum u8 {
+        EMPTY           :: 0;
+        OPEN            :: 1;
+        WALL            :: 2;
+        PLAYER_LEFT     :: 3;
+        PLAYER_RIGHT    :: 4;
+        PLAYER_UP       :: 5;
+        PLAYER_DOWN     :: 6;
+    }
+
+    BoardFace :: enum u8 {
+        TOP     :: 0;
+        BACK    :: 1;
+        FRONT   :: 2;
+        RIGHT   :: 3;
+        LEFT    :: 4;
+        BOTTOM  :: 5;
+    }
+
+    FacingDir :: enum u8 {
+        RIGHT   :: 0;
+        DOWN    :: 1;
+        LEFT    :: 2;
+        UP      :: 3;
+    }
+
+    dirs : [4]Vec2;
+    dirs[FacingDir.LEFT]  = Vec2.{-1, 0};
+    dirs[FacingDir.UP]    = Vec2.{0, -1};
+    dirs[FacingDir.RIGHT] = Vec2.{1, 0};
+    dirs[FacingDir.DOWN]  = Vec2.{0, 1};
+
+    // parse input
+    BoardFaceTiles :: [..]BoardTile;
+    board_faces : [..]BoardFaceTiles;
+
+    parts := split(input, "\r\n\r\n");
+    assert(parts.count == 2);
+
+    // parse board
+    board_lines := split(parts[0], "\r\n");
+
+    edge := face_size;
+    upperleft_corners : [6]Vec2;
+
+    // unfolding of example and real data is different
+    if example {
+        upperleft_corners[BoardFace.TOP]      = Vec2.{2, 1};
+        upperleft_corners[BoardFace.FRONT]    = Vec2.{2, 2};
+        upperleft_corners[BoardFace.BACK]     = Vec2.{2, 0};
+        upperleft_corners[BoardFace.RIGHT]    = Vec2.{3, 2};
+        upperleft_corners[BoardFace.LEFT]     = Vec2.{1, 1};
+        upperleft_corners[BoardFace.BOTTOM]   = Vec2.{0, 1};
+    } else {
+        // corners[BoardFace.TOP]      = CornerPair.{ Vec2.{e, e}, Vec2.{2*e-1,2*e-1} };
+        // corners[BoardFace.FRONT]    = CornerPair.{ Vec2.{e, e}, Vec2.{0,0} };
+        // corners[BoardFace.BACK]     = CornerPair.{ Vec2.{2*e-1, e-1}, Vec2.{e, 0} };
+        // corners[BoardFace.RIGHT]    = CornerPair.{ Vec2.{3*e-1, e-1}, Vec2.{2*e, 0} };
+        // corners[BoardFace.LEFT]     = CornerPair.{ Vec2.{0, 2*e}, Vec2.{e-1,3*e-1} };
+        // corners[BoardFace.BOTTOM]   = CornerPair.{ Vec2.{0, 0}, Vec2.{0,0} };
+    }
+
+    // Extract cube faces
+    for ul_corner : upperleft_corners {
+        lo := Vec2.{ ul_corner.x * edge, ul_corner.y * edge };
+        hi := Vec2.{ (ul_corner.x + 1)*edge - 1, (ul_corner.y + 1)*edge - 1 };
+
+        tiles : BoardFaceTiles;
+        for row: lo.y..hi.y {
+            for col: lo.x..hi.x {
+                c := board_lines[row][col];
+                tile : BoardTile;
+                if c == #char " " tile = BoardTile.EMPTY;
+                else if c == #char "." tile = BoardTile.OPEN;
+                else if c == #char "#" tile = BoardTile.WALL;
+                else assert(false);
+
+                array_add(*tiles, tile);
+            }
+        }
+        array_add(*board_faces, tiles);
+    }
+    assert(board_faces.count == 6);
+
+    flip_idx :: (i: int, dim: int) -> int {
+        return dim - 1 - i;
+    }
+
+    rotate_face_cw :: (src : []BoardTile, dim: int) -> [..]BoardTile {
+        assert(src.count == dim*dim);
+
+        dst : [..]BoardTile;
+        array_resize(*dst, src.count, true);
+
+        for src_row: 0..dim-1 {
+            for src_col: 0..dim-1 {
+                src_idx := src_row*dim + src_col;
+
+                dst_row := src_col;
+                dst_col := flip_idx(src_row, dim);
+                dst_idx := dst_row*dim + dst_col;
+                dst[dst_idx] = src[src_idx];             
+            }
+        }
+
+        return dst;
+    }
+
+    rotate_face_ccw :: (src : []BoardTile, dim: int) -> [..]BoardTile {
+        assert(src.count == dim*dim);
+
+        dst : [..]BoardTile;
+        array_resize(*dst, src.count, true);
+
+        for src_row: 0..dim-1 {
+            for src_col: 0..dim-1 {
+                src_idx := src_row*dim + src_col;
+
+                dst_row := flip_idx(src_col, dim);
+                dst_col := src_row;
+                dst_idx := dst_row*dim + dst_col;
+                dst[dst_idx] = src[src_idx];             
+            }
+        }
+
+        return dst;
+    }
+
+    mirror_face :: (src : []BoardTile, dim: int) -> [..]BoardTile {
+        assert(src.count == dim*dim);
+
+        dst : [..]BoardTile;
+        array_resize(*dst, src.count, true);
+
+        for src_row: 0..dim-1 {
+            for src_col: 0..dim-1 {
+                src_idx := src_row*dim + src_col;
+
+                dst_row := src_row;
+                dst_col := flip_idx(src_col, dim);
+                dst_idx := dst_row*dim + dst_col;
+                dst[dst_idx] = src[src_idx];             
+            }
+        }
+
+        return dst;
+    }
+
+    // Convert cube faces to "canonical" form
+    //           |bck|
+    //  ____________________
+    //  |bot|left|top|right|
+    //  --------------------
+    //           |fnt|
+    if example {
+        board_faces[BoardFace.RIGHT] = rotate_face_ccw(board_faces[BoardFace.RIGHT], edge);
+    } else {
+        assert(false);
+    }
+
+    turn :: (cur_facing: FacingDir, turn_left: bool) -> FacingDir {
+        if turn_left {
+            if cur_facing == FacingDir.LEFT return FacingDir.DOWN;
+            else if cur_facing == FacingDir.DOWN return FacingDir.RIGHT;
+            else if cur_facing == FacingDir.RIGHT return FacingDir.UP;
+            else if cur_facing == FacingDir.UP return FacingDir.LEFT;
+        } else {
+            if cur_facing == FacingDir.LEFT return FacingDir.UP;
+            else if cur_facing == FacingDir.DOWN return FacingDir.LEFT;
+            else if cur_facing == FacingDir.RIGHT return FacingDir.DOWN;
+            else if cur_facing == FacingDir.UP return FacingDir.RIGHT;
+        }
+        assert(false);
+        return FacingDir.LEFT;
+    }
+
+    wrap :: (pos: Vec2, face: BoardFace, dir: FacingDir, dim: int) -> (Vec2, BoardFace, FacingDir) {
+        p := pos;
+
+        // In boards
+        if p.x >= 0 && p.x < dim && p.y >= 0 && p.y < dim {
+            return (pos, face, dir);
+        }
+
+        // assume didn't go off by more than one
+        assert(p.x >= -1 && p.x <= dim && p.y >= -1 && p.y <= dim);
+
+        // Complicated wrap
+        if face == BoardFace.TOP {
+            if p.y >= dim return Vec2.{p.x, 0}, BoardFace.FRONT, FacingDir.DOWN;                            // top -> front
+            else if p.y < 0 return Vec2.{p.x, dim-1}, BoardFace.BACK, FacingDir.UP;                         // top -> back
+            else if p.x < 0 return Vec2.{dim-1, p.y}, BoardFace.LEFT, FacingDir.LEFT;                       // top -> left
+            else if p.x >= dim return Vec2.{0, p.y}, BoardFace.RIGHT, FacingDir.RIGHT;                      // top -> right
+            else assert(false);
+        } else if face == BoardFace.FRONT {
+            if p.x < 0 return Vec2.{flip_idx(p.y, dim), dim-1}, BoardFace.LEFT, FacingDir.UP;               // front -> left
+            else if p.x >= dim return Vec2.{flip_idx(p.y, dim), dim-1}, BoardFace.RIGHT, FacingDir.UP;      // front -> right
+            else if p.y < 0 return Vec2.{p.x, dim-1}, BoardFace.TOP, FacingDir.UP;                          // front -> top
+            else if p.y >= dim return Vec2.{flip_idx(p.x, dim), dim-1}, BoardFace.BOTTOM, FacingDir.UP;     // front -> bottom
+            else assert(false);
+        } else if face == BoardFace.BACK {
+            if p.y >= dim return Vec2.{p.x, 0}, BoardFace.FRONT, FacingDir.DOWN;                            // back -> top
+            else if p.y < 0 return Vec2.{flip_idx(p.x, dim), 0}, BoardFace.BOTTOM, FacingDir.DOWN;          // back -> bottom
+            else if p.x < 0 return Vec2.{flip_idx(p.y, dim), 0}, BoardFace.LEFT, FacingDir.DOWN;            // back -> left
+            else if p.x >= dim return Vec2.{flip_idx(p.y, dim), 0}, BoardFace.RIGHT, FacingDir.DOWN;        // back -> right
+            else assert(false);
+        } else if face == BoardFace.LEFT {
+            if p.x < 0 return Vec2.{dim -1, p.y}, BoardFace.BOTTOM, FacingDir.LEFT;                         // left -> bottom
+            else if p.x >= dim return Vec2.{0, p.y}, BoardFace.TOP, FacingDir.RIGHT;                        // left -> top
+            else if p.y < 0 return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.BACK, FacingDir.RIGHT;           // left -> back
+            else if p.y >= dim return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.FRONT, FacingDir.RIGHT;       // left -> front
+            else assert(false);
+        } else if face == BoardFace.RIGHT {
+            if p.x < 0 return Vec2.{dim-1, p.y}, BoardFace.TOP, FacingDir.LEFT;                             // right -> top
+            else if p.x >= dim return Vec2.{0, p.y}, BoardFace.BOTTOM, FacingDir.RIGHT;                     // right -> bottom
+            else if p.y < 0 return Vec2.{dim-1, flip_idx(p.x,dim)}, BoardFace.BACK, FacingDir.LEFT;         // right -> back
+            else if p.y >= dim return Vec2.{dim-1, p.x}, BoardFace.FRONT, FacingDir.LEFT;                   // right -> front
+            else assert(false);
+        } else if face == BoardFace.BOTTOM {
+            if p.x < 0 return Vec2.{dim-1, p.y}, BoardFace.RIGHT, FacingDir.LEFT;                           // bottom -> right
+            else if p.x >= dim return Vec2.{0, p.y}, BoardFace.LEFT, FacingDir.RIGHT;                       // bottom -> left
+            else if p.y < 0 return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.BACK, FacingDir.RIGHT;           // bottom -> back
+            else if p.y >= dim return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.FRONT, FacingDir.RIGHT;       // bottom -> front
+            else assert(false);
+        } else assert(false);
+
+        assert(false);
+        return (pos, face, dir);
+    }
+
+    get_tile :: (faces: []BoardFaceTiles, dim: int, f: BoardFace, pos: Vec2) -> BoardTile {
+        face := faces[f];
+        idx := pos.y*dim + pos.x;
+        return face[idx];
+    }
+
+    // Initialize position
+    cur_pos := Vec2.{0,0};
+    cur_boardface := BoardFace.BACK;
+    cur_facing := FacingDir.RIGHT;
+
+    // Process moves
+    moves : string = parts[1];
+    while moves.count > 0 {
+        // parse number
+        digits := stop_at_any(moves, "LR");
+        amount := string_to_int(digits);
+        moves = slice(moves, digits.count);
+
+        // advance positions
+        cur_dir := dirs[cur_facing];
+        for 0..amount-1 {
+            // increment pos
+            maybe_pos, maybe_face, maybe_facing := wrap(cur_pos + cur_dir, cur_boardface, cur_facing, edge);
+            
+            // get new position
+            tile := get_tile(board_faces, edge, maybe_face, maybe_pos);
+            assert(tile == BoardTile.OPEN || tile == BoardTile.WALL);
+
+            if tile == BoardTile.OPEN {
+                cur_pos = maybe_pos;
+                cur_boardface = maybe_face;
+                cur_facing = maybe_facing;
+            } else {
+                break;
+            }
+        }
+
+        // process turn
+        if moves.count > 0 {
+            // read single character
+            assert(moves[0] == #char "L" || moves[0] == #char "R");
+            turn_left := moves[0] == #char "L";
+            moves = slice(moves, 1);
+
+            cur_facing = turn(cur_facing, turn_left);
+        }
+    }
+
+    print("final: pos: %  face: %\n", cur_pos, cur_boardface);
+
+    part2 := 1000 * (cur_pos.y) + 4*cur_pos.x + cast(int)cur_facing;
+    print("part2: %\n", part2);
+    return part2;
 }
 
 #import "Basic";
