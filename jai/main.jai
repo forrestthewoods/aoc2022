@@ -3580,7 +3580,7 @@ d21_node :: struct {
 // --------------------------------------------------------
 day22 :: () {
     day22_test();
-    //day22_actual();
+    day22_actual();
 }
 
 day22_test :: () {
@@ -3869,7 +3869,7 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
         upperleft_corners[BoardFace.LEFT]     = Vec2.{1, 1};
         upperleft_corners[BoardFace.BOTTOM]   = Vec2.{0, 1};
     } else {
-        upperleft_corners[BoardFace.TOP]      = Vec2.{1, 0};
+        upperleft_corners[BoardFace.TOP]      = Vec2.{1, 1};
         upperleft_corners[BoardFace.FRONT]    = Vec2.{0, 3};
         upperleft_corners[BoardFace.BACK]     = Vec2.{0, 2};
         upperleft_corners[BoardFace.RIGHT]    = Vec2.{1, 1};
@@ -3923,30 +3923,11 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
     unwrap :: (p: Vec2, face: BoardFace, dim: int, corners: [6]Vec2) -> Vec2 {
         corner := corners[face];
         return Vec2.{corner.x*dim + p.x, corner.y*dim + p.y};
-
-        // if example {
-        //     if face == BoardFace.BACK           return Vec2.{2*dim + p.x, p.y};
-        //     else if face == BoardFace.BOTTOM    return Vec2.{p.x, dim + p.y};
-        //     else if face == BoardFace.LEFT      return Vec2.{dim + p.x, dim + p.y};
-        //     else if face == BoardFace.TOP       return Vec2.{2*dim + p.x, dim + p.y};
-        //     else if face == BoardFace.FRONT     return Vec2.{2*dim + p.x, 2*dim + p.y};
-        //     else if face == BoardFace.RIGHT     return Vec2.{3*dim + p.x, 2*dim + p.y};
-        //     else assert(false);
-        // } else {
-        //     assert(false);
-        //     if face == BoardFace.BACK           return Vec2.{1,0};
-        //     else if face == BoardFace.BOTTOM    return Vec2.{0,3};
-        //     else if face == BoardFace.LEFT      return Vec2.{0,2};
-        //     else if face == BoardFace.TOP       return Vec2.{1,1};
-        //     else if face == BoardFace.FRONT     return Vec2.{1,2};
-        //     else if face == BoardFace.RIGHT     return Vec2.{2,0};
-        //     else assert(false);
-        // }
     }
 
     
     // TODO: solve for non-example
-    wrap :: (pos: Vec2, face: BoardFace, dir: FacingDir, dim: int) -> (Vec2, BoardFace, FacingDir) {
+    wrap :: (pos: Vec2, face: BoardFace, dir: FacingDir, dim: int, example: bool) -> (Vec2, BoardFace, FacingDir) {
         p := pos;
 
         // In boards
@@ -3958,44 +3939,82 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
         assert(p.x >= -1 && p.x <= dim && p.y >= -1 && p.y <= dim);
 
         // Complicated wrap
-        if face == BoardFace.TOP {
-            if p.y >= dim return Vec2.{p.x, 0}, BoardFace.FRONT, FacingDir.DOWN;                            // top -> front
-            else if p.y < 0 return Vec2.{p.x, dim-1}, BoardFace.BACK, FacingDir.UP;                         // top -> back
-            else if p.x < 0 return Vec2.{dim-1, p.y}, BoardFace.LEFT, FacingDir.LEFT;                       // top -> left
-            else if p.x >= dim return Vec2.{flip_idx(p.y, dim), 0}, BoardFace.RIGHT, FacingDir.DOWN;                      // top -> right
-            else assert(false);
-        } else if face == BoardFace.FRONT {
-            if p.x < 0 return Vec2.{flip_idx(p.y, dim), dim-1}, BoardFace.LEFT, FacingDir.UP;               // front -> left
-            else if p.x >= dim return Vec2.{0, p.y}, BoardFace.RIGHT, FacingDir.RIGHT;      // front -> right
-            else if p.y < 0 return Vec2.{p.x, dim-1}, BoardFace.TOP, FacingDir.UP;                          // front -> top
-            else if p.y >= dim return Vec2.{flip_idx(p.x, dim), dim-1}, BoardFace.BOTTOM, FacingDir.UP;     // front -> bottom
-            else assert(false);
-        } else if face == BoardFace.BACK {
-            if p.y >= dim return Vec2.{p.x, 0}, BoardFace.TOP, FacingDir.DOWN;                            // back -> top
-            else if p.y < 0 return Vec2.{flip_idx(p.x, dim), 0}, BoardFace.BOTTOM, FacingDir.DOWN;          // back -> bottom
-            else if p.x < 0 return Vec2.{flip_idx(p.y, dim), 0}, BoardFace.LEFT, FacingDir.DOWN;            // back -> left
-            else if p.x >= dim return Vec2.{flip_idx(p.y, dim),dim-1}, BoardFace.RIGHT, FacingDir.UP;        // back -> right
-            else assert(false);
-        } else if face == BoardFace.LEFT {
-            if p.x < 0 return Vec2.{dim -1, p.y}, BoardFace.BOTTOM, FacingDir.LEFT;                         // left -> bottom
-            else if p.x >= dim return Vec2.{0, p.y}, BoardFace.TOP, FacingDir.RIGHT;                        // left -> top
-            else if p.y < 0 return Vec2.{0, p.x}, BoardFace.BACK, FacingDir.RIGHT;           // left -> back
-            else if p.y >= dim return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.FRONT, FacingDir.RIGHT;       // left -> front
-            else assert(false);
-        } else if face == BoardFace.RIGHT {
-            if p.x < 0 return Vec2.{dim-1,p.y}, BoardFace.FRONT, FacingDir.LEFT;                             // right -> 
-            else if p.x >= dim return Vec2.{9, p.y}, BoardFace.BACK, FacingDir.RIGHT;                     // right -> 
-            else if p.y < 0 return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.BOTTOM, FacingDir.RIGHT;         // right -> 
-            else if p.y >= dim return Vec2.{dim-1, flip_idx(p.x, dim)}, BoardFace.TOP, FacingDir.LEFT;                   // right -> 
-            else assert(false);
-        } else if face == BoardFace.BOTTOM {
-            if p.x < 0 return Vec2.{flip_idx(p.y, dim),dim-1}, BoardFace.RIGHT, FacingDir.LEFT;                           // bottom -> right
-            else if p.x >= dim return Vec2.{0, p.y}, BoardFace.LEFT, FacingDir.RIGHT;                       // bottom -> left
-            else if p.y < 0 return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.BACK, FacingDir.RIGHT;           // bottom -> back
-            else if p.y >= dim return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.FRONT, FacingDir.RIGHT;       // bottom -> front
-            else assert(false);
+        if example {
+            if face == BoardFace.TOP {
+                if p.y >= dim return Vec2.{p.x, 0}, BoardFace.FRONT, FacingDir.DOWN;                            // top -> front
+                else if p.y < 0 return Vec2.{p.x, dim-1}, BoardFace.BACK, FacingDir.UP;                         // top -> back
+                else if p.x < 0 return Vec2.{dim-1, p.y}, BoardFace.LEFT, FacingDir.LEFT;                       // top -> left
+                else if p.x >= dim return Vec2.{flip_idx(p.y, dim), 0}, BoardFace.RIGHT, FacingDir.DOWN;                      // top -> right
+                else assert(false);
+            } else if face == BoardFace.FRONT {
+                if p.x < 0 return Vec2.{flip_idx(p.y, dim), dim-1}, BoardFace.LEFT, FacingDir.UP;               // front -> left
+                else if p.x >= dim return Vec2.{0, p.y}, BoardFace.RIGHT, FacingDir.RIGHT;      // front -> right
+                else if p.y < 0 return Vec2.{p.x, dim-1}, BoardFace.TOP, FacingDir.UP;                          // front -> top
+                else if p.y >= dim return Vec2.{flip_idx(p.x, dim), dim-1}, BoardFace.BOTTOM, FacingDir.UP;     // front -> bottom
+                else assert(false);
+            } else if face == BoardFace.BACK {
+                if p.y >= dim return Vec2.{p.x, 0}, BoardFace.TOP, FacingDir.DOWN;                            // back -> top
+                else if p.y < 0 return Vec2.{flip_idx(p.x, dim), 0}, BoardFace.BOTTOM, FacingDir.DOWN;          // back -> bottom
+                else if p.x < 0 return Vec2.{flip_idx(p.y, dim), 0}, BoardFace.LEFT, FacingDir.DOWN;            // back -> left
+                else if p.x >= dim return Vec2.{flip_idx(p.y, dim),dim-1}, BoardFace.RIGHT, FacingDir.UP;        // back -> right
+                else assert(false);
+            } else if face == BoardFace.LEFT {
+                if p.x < 0 return Vec2.{dim -1, p.y}, BoardFace.BOTTOM, FacingDir.LEFT;                         // left -> bottom
+                else if p.x >= dim return Vec2.{0, p.y}, BoardFace.TOP, FacingDir.RIGHT;                        // left -> top
+                else if p.y < 0 return Vec2.{0, p.x}, BoardFace.BACK, FacingDir.RIGHT;           // left -> back
+                else if p.y >= dim return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.FRONT, FacingDir.RIGHT;       // left -> front
+                else assert(false);
+            } else if face == BoardFace.RIGHT {
+                if p.x < 0 return Vec2.{dim-1,p.y}, BoardFace.FRONT, FacingDir.LEFT;                             // right -> 
+                else if p.x >= dim return Vec2.{9, p.y}, BoardFace.BACK, FacingDir.RIGHT;                     // right -> 
+                else if p.y < 0 return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.BOTTOM, FacingDir.RIGHT;         // right -> 
+                else if p.y >= dim return Vec2.{dim-1, flip_idx(p.x, dim)}, BoardFace.TOP, FacingDir.LEFT;                   // right -> 
+                else assert(false);
+            } else if face == BoardFace.BOTTOM {
+                if p.x < 0 return Vec2.{flip_idx(p.y, dim),dim-1}, BoardFace.RIGHT, FacingDir.LEFT;                           // bottom -> right
+                else if p.x >= dim return Vec2.{0, p.y}, BoardFace.LEFT, FacingDir.RIGHT;                       // bottom -> left
+                else if p.y < 0 return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.BACK, FacingDir.RIGHT;           // bottom -> back
+                else if p.y >= dim return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.FRONT, FacingDir.RIGHT;       // bottom -> front
+                else assert(false);
+            } else assert(false);
         } else {
-            assert(false);
+            if face == BoardFace.TOP {
+                if p.y >= dim       return Vec2.{p.x, 0},                   BoardFace.FRONT,    FacingDir.DOWN; 
+                else if p.y < 0     return Vec2.{p.x, dim-1},               BoardFace.BACK,     FacingDir.UP;   
+                else if p.x < 0     return Vec2.{dim-1, p.y},               BoardFace.LEFT,     FacingDir.LEFT; 
+                else if p.x >= dim  return Vec2.{flip_idx(p.y, dim), 0},    BoardFace.RIGHT,    FacingDir.DOWN; 
+                else assert(false);
+            } else if face == BoardFace.FRONT {
+                if p.x < 0          return Vec2.{dim-1, p.y},               BoardFace.LEFT,     FacingDir.LEFT;           
+                else if p.x >= dim  return Vec2.{dim-1, flip_idx(p.y,dim)}, BoardFace.RIGHT,    FacingDir.LEFT;  
+                else if p.y < 0     return Vec2.{p.x, dim-1},               BoardFace.TOP,      FacingDir.UP;                        
+                else if p.y >= dim  return Vec2.{dim-1, p.x},               BoardFace.BOTTOM,   FacingDir.LEFT;    
+                else assert(false);
+            } else if face == BoardFace.BACK {
+                if p.y >= dim       return Vec2.{p.x, 0},                   BoardFace.TOP,      FacingDir.DOWN;                           
+                else if p.y < 0     return Vec2.{0, p.x},                   BoardFace.BOTTOM,   FacingDir.RIGHT;     
+                else if p.x < 0     return Vec2.{0, flip_idx(p.y, dim)},    BoardFace.LEFT,     FacingDir.RIGHT;
+                else if p.x >= dim  return Vec2.{0, p.y},                   BoardFace.RIGHT,    FacingDir.RIGHT;    
+                else assert(false);
+            } else if face == BoardFace.LEFT {
+                if p.x < 0          return Vec2.{0, flip_idx(p.y, dim)},    BoardFace.BACK,     FacingDir.RIGHT;                      
+                else if p.x >= dim  return Vec2.{0, p.y},                   BoardFace.FRONT,    FacingDir.RIGHT;                     
+                else if p.y < 0     return Vec2.{0, p.x},                   BoardFace.TOP,      FacingDir.RIGHT;          
+                else if p.y >= dim  return Vec2.{p.x, 0},                   BoardFace.BOTTOM,   FacingDir.DOWN;      
+                else assert(false);
+            } else if face == BoardFace.RIGHT {
+                if p.x < 0          return Vec2.{dim-1, p.y},               BoardFace.BACK,     FacingDir.LEFT;                         
+                else if p.x >= dim  return Vec2.{dim-1, flip_idx(p.y, dim)},BoardFace.FRONT,    FacingDir.LEFT;                    
+                else if p.y < 0     return Vec2.{p.x, dim-1},               BoardFace.BOTTOM,   FacingDir.UP;      
+                else if p.y >= dim  return Vec2.{dim-1, p.x},               BoardFace.TOP,      FacingDir.LEFT;   
+                else assert(false);
+            } else if face == BoardFace.BOTTOM {
+                if p.x < 0          return Vec2.{p.y, 0},                   BoardFace.BACK,     FacingDir.DOWN;          
+                else if p.x >= dim  return Vec2.{p.y, dim-1},               BoardFace.FRONT,    FacingDir.UP;                    
+                else if p.y < 0     return Vec2.{p.x, dim-1},               BoardFace.LEFT,     FacingDir.UP;        
+                else if p.y >= dim  return Vec2.{p.x, 0},                   BoardFace.RIGHT,    FacingDir.DOWN;    
+                else assert(false);
+            } else assert(false);
         }
 
         assert(false);
@@ -4018,6 +4037,10 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
 
     array_add(*debug_locs, DebugLoc.{cur_pos, cur_boardface, cur_facing});
 
+    // for debug
+    prev_pos := cur_pos;
+    prev_face := cur_boardface;
+
     // Process moves
     moves : string = parts[1];
     while moves.count > 0 {
@@ -4031,13 +4054,16 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
         cur_dir := dirs[cur_facing];
         for 0..amount-1 {
             // increment pos
-            maybe_pos, maybe_face, maybe_facing := wrap(cur_pos + cur_dir, cur_boardface, cur_facing, edge);
+            maybe_pos, maybe_face, maybe_facing := wrap(cur_pos + cur_dir, cur_boardface, cur_facing, edge, example);
             
             // get new position
             tile := get_tile(board_faces, edge, maybe_face, maybe_pos);
             assert(tile == BoardTile.OPEN || tile == BoardTile.WALL);
 
             if tile == BoardTile.OPEN {
+                prev_pos = cur_pos;
+                prev_face = cur_boardface;
+
                 cur_pos = maybe_pos;
                 cur_boardface = maybe_face;
                 cur_facing = maybe_facing;
@@ -4078,16 +4104,12 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
         }
     }
 
-    if example {
-        stamp_face(board, board_dim, BoardFace.FRONT,   board_faces[BoardFace.FRONT],   upperleft_corners[BoardFace.FRONT],     edge);
-        stamp_face(board, board_dim, BoardFace.BACK,    board_faces[BoardFace.BACK],    upperleft_corners[BoardFace.BACK],      edge);
-        stamp_face(board, board_dim, BoardFace.TOP,     board_faces[BoardFace.TOP],     upperleft_corners[BoardFace.TOP],       edge);
-        stamp_face(board, board_dim, BoardFace.BOTTOM,  board_faces[BoardFace.BOTTOM],  upperleft_corners[BoardFace.BOTTOM],    edge);
-        stamp_face(board, board_dim, BoardFace.LEFT,    board_faces[BoardFace.LEFT],    upperleft_corners[BoardFace.LEFT],      edge);
-        stamp_face(board, board_dim, BoardFace.RIGHT,   board_faces[BoardFace.RIGHT],   upperleft_corners[BoardFace.RIGHT],     edge);
-    } else {
-        assert(false);
-    }
+    stamp_face(board, board_dim, BoardFace.FRONT,   board_faces[BoardFace.FRONT],   upperleft_corners[BoardFace.FRONT],     edge);
+    stamp_face(board, board_dim, BoardFace.BACK,    board_faces[BoardFace.BACK],    upperleft_corners[BoardFace.BACK],      edge);
+    stamp_face(board, board_dim, BoardFace.TOP,     board_faces[BoardFace.TOP],     upperleft_corners[BoardFace.TOP],       edge);
+    stamp_face(board, board_dim, BoardFace.BOTTOM,  board_faces[BoardFace.BOTTOM],  upperleft_corners[BoardFace.BOTTOM],    edge);
+    stamp_face(board, board_dim, BoardFace.LEFT,    board_faces[BoardFace.LEFT],    upperleft_corners[BoardFace.LEFT],      edge);
+    stamp_face(board, board_dim, BoardFace.RIGHT,   board_faces[BoardFace.RIGHT],   upperleft_corners[BoardFace.RIGHT],     edge);
 
     for loc : debug_locs {
         pos := unwrap(loc.pos, loc.face, face_size, upperleft_corners);
@@ -4124,6 +4146,7 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
     final_pos := unwrap(cur_pos, cur_boardface, face_size, upperleft_corners);
     print("pos: %  face: %  final_pos: %\n", cur_pos, cur_boardface, final_pos);
 
+    // 101151 - too low
     final_pos += Vec2.{1,1};
     part2 := 1000 * (final_pos.y) + 4*final_pos.x + cast(int)cur_facing;
     print("part2: %\n", part2);
