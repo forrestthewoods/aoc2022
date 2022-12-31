@@ -3587,9 +3587,9 @@ day22_test :: () {
     input, success := read_entire_file("data/day22_example.txt");
     assert(success);
 
-    // part1 := day22_solve(input);
-    // print("(test) day22 part1: %\n", part1);
-    // assert(part1 == 6032);
+    part1 := day22_solve(input);
+    print("(test) day22 part1: %\n", part1);
+    assert(part1 == 6032);
 
     part2 := day22_solve_part2(input, true);
     print("(test) day22 part2: %\n", part2);
@@ -3600,12 +3600,13 @@ day22_actual :: () {
     input, success := read_entire_file("data/day22.txt");
     assert(success);
 
-    // part1 := day22_solve(input);
-    // print("day22 part1: %\n", part1);
-    // assert(part1 == 89224);
+    part1 := day22_solve(input);
+    print("day22 part1: %\n", part1);
+    assert(part1 == 89224);
 
     part2 := day22_solve_part2(input, false);
-    print("(test) day22 part2: %\n", part2);
+    print("day22 part2: %\n", part2);
+    assert(part2 == 136182);
 }
 
 day22_solve :: (input: string) -> int {
@@ -3802,10 +3803,10 @@ day22_solve :: (input: string) -> int {
         s : string = builder_to_string(*builder);
         print("%\n", s);
     }
-    print_board(board, board_width);
+    //print_board(board, board_width);
 
     cur_pos += Vec2.{1,1}; // convert
-    print("final pos: %\n", cur_pos);
+    //print("final pos: %\n", cur_pos);
 
     part1 := 1000 * (cur_pos.y) + 4*cur_pos.x + cast(int)cur_facing;
     return part1;
@@ -4145,14 +4146,14 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
     //print_board(board, board_dim);
 
     final_pos := unwrap(cur_pos, cur_boardface, face_size, upperleft_corners);
-    print("pos: %  face: %  final_pos: %\n", cur_pos, cur_boardface, final_pos);
+    //print("pos: %  face: %  final_pos: %\n", cur_pos, cur_boardface, final_pos);
 
     // 101151 - too low
     // 134281 - too low
     // 157134 - too high
     final_pos += Vec2.{1,1};
     part2 := 1000 * (final_pos.y) + 4*final_pos.x + cast(int)cur_facing;
-    print("part2: %\n", part2);
+    //print("part2: %\n", part2);
     return part2;
 }
 
