@@ -3579,8 +3579,8 @@ d21_node :: struct {
 // Day 22
 // --------------------------------------------------------
 day22 :: () {
-    day22_test();
-    //day22_actual();
+    //day22_test();
+    day22_actual();
 }
 
 day22_test :: () {
@@ -3593,18 +3593,19 @@ day22_test :: () {
 
     part2 := day22_solve_part2(input, true);
     print("(test) day22 part2: %\n", part2);
+    assert(part2 == 5031);
 }
 
 day22_actual :: () {
     input, success := read_entire_file("data/day22.txt");
     assert(success);
 
-    part1 := day22_solve(input);
-    print("day22 part1: %\n", part1);
-    assert(part1 == 89224);
+    // part1 := day22_solve(input);
+    // print("day22 part1: %\n", part1);
+    // assert(part1 == 89224);
 
-    // part2 := day22_solve(input);
-    // print("day22 part2: %\n", part2);
+    part2 := day22_solve_part2(input, false);
+    print("(test) day22 part2: %\n", part2);
 }
 
 day22_solve :: (input: string) -> int {
@@ -3813,14 +3814,15 @@ day22_solve :: (input: string) -> int {
 day22_solve_part2 :: (input: string, example: bool) -> int {
     face_size := ifx example then 4 else 50;
     
+    //BoardTile :: #type,distinct BoardTile;
     BoardTile :: enum u8 {
         EMPTY           :: 0;
         OPEN            :: 1;
         WALL            :: 2;
-        PLAYER_LEFT     :: 3;
-        PLAYER_RIGHT    :: 4;
-        PLAYER_UP       :: 5;
-        PLAYER_DOWN     :: 6;
+        PLAYER_RIGHT    :: 3;
+        PLAYER_DOWN     :: 4;
+        PLAYER_LEFT     :: 5;
+        PLAYER_UP       :: 6;
     }
 
     BoardFace :: enum u8 {
@@ -3867,12 +3869,12 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
         upperleft_corners[BoardFace.LEFT]     = Vec2.{1, 1};
         upperleft_corners[BoardFace.BOTTOM]   = Vec2.{0, 1};
     } else {
-        // corners[BoardFace.TOP]      = CornerPair.{ Vec2.{e, e}, Vec2.{2*e-1,2*e-1} };
-        // corners[BoardFace.FRONT]    = CornerPair.{ Vec2.{e, e}, Vec2.{0,0} };
-        // corners[BoardFace.BACK]     = CornerPair.{ Vec2.{2*e-1, e-1}, Vec2.{e, 0} };
-        // corners[BoardFace.RIGHT]    = CornerPair.{ Vec2.{3*e-1, e-1}, Vec2.{2*e, 0} };
-        // corners[BoardFace.LEFT]     = CornerPair.{ Vec2.{0, 2*e}, Vec2.{e-1,3*e-1} };
-        // corners[BoardFace.BOTTOM]   = CornerPair.{ Vec2.{0, 0}, Vec2.{0,0} };
+        upperleft_corners[BoardFace.TOP]      = Vec2.{1, 0};
+        upperleft_corners[BoardFace.FRONT]    = Vec2.{0, 3};
+        upperleft_corners[BoardFace.BACK]     = Vec2.{0, 2};
+        upperleft_corners[BoardFace.RIGHT]    = Vec2.{1, 1};
+        upperleft_corners[BoardFace.LEFT]     = Vec2.{1, 2};
+        upperleft_corners[BoardFace.BOTTOM]   = Vec2.{2, 0};
     }
 
     // Extract cube faces
@@ -3893,84 +3895,13 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
                 array_add(*tiles, tile);
             }
         }
+        //print("    Tiles from [%]: %\n", ul_corner, tiles);
         array_add(*board_faces, tiles);
     }
     assert(board_faces.count == 6);
 
     flip_idx :: (i: int, dim: int) -> int {
         return dim - 1 - i;
-    }
-
-    rotate_face_cw :: (src : []BoardTile, dim: int) -> [..]BoardTile {
-        assert(src.count == dim*dim);
-
-        dst : [..]BoardTile;
-        array_resize(*dst, src.count, true);
-
-        for src_row: 0..dim-1 {
-            for src_col: 0..dim-1 {
-                src_idx := src_row*dim + src_col;
-
-                dst_row := src_col;
-                dst_col := flip_idx(src_row, dim);
-                dst_idx := dst_row*dim + dst_col;
-                dst[dst_idx] = src[src_idx];             
-            }
-        }
-
-        return dst;
-    }
-
-    rotate_face_ccw :: (src : []BoardTile, dim: int) -> [..]BoardTile {
-        assert(src.count == dim*dim);
-
-        dst : [..]BoardTile;
-        array_resize(*dst, src.count, true);
-
-        for src_row: 0..dim-1 {
-            for src_col: 0..dim-1 {
-                src_idx := src_row*dim + src_col;
-
-                dst_row := flip_idx(src_col, dim);
-                dst_col := src_row;
-                dst_idx := dst_row*dim + dst_col;
-                dst[dst_idx] = src[src_idx];             
-            }
-        }
-
-        return dst;
-    }
-
-    mirror_face :: (src : []BoardTile, dim: int) -> [..]BoardTile {
-        assert(src.count == dim*dim);
-
-        dst : [..]BoardTile;
-        array_resize(*dst, src.count, true);
-
-        for src_row: 0..dim-1 {
-            for src_col: 0..dim-1 {
-                src_idx := src_row*dim + src_col;
-
-                dst_row := src_row;
-                dst_col := flip_idx(src_col, dim);
-                dst_idx := dst_row*dim + dst_col;
-                dst[dst_idx] = src[src_idx];             
-            }
-        }
-
-        return dst;
-    }
-
-    // Convert cube faces to "canonical" form
-    //           |bck|
-    //  ____________________
-    //  |bot|left|top|right|
-    //  --------------------
-    //           |fnt|
-    if example {
-        board_faces[BoardFace.RIGHT] = rotate_face_ccw(board_faces[BoardFace.RIGHT], edge);
-    } else {
-        assert(false);
     }
 
     turn :: (cur_facing: FacingDir, turn_left: bool) -> FacingDir {
@@ -3989,6 +3920,34 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
         return FacingDir.LEFT;
     }
 
+    unwrap :: (p: Vec2, face: BoardFace, dim: int, corners: [6]Vec2) -> Vec2 {
+        corner := corners[face];
+        return Vec2.{corner.x*dim + p.x, corner.y*dim + p.y};
+
+        // if example {
+        //     if face == BoardFace.BACK           return Vec2.{2*dim + p.x, p.y};
+        //     else if face == BoardFace.BOTTOM    return Vec2.{p.x, dim + p.y};
+        //     else if face == BoardFace.LEFT      return Vec2.{dim + p.x, dim + p.y};
+        //     else if face == BoardFace.TOP       return Vec2.{2*dim + p.x, dim + p.y};
+        //     else if face == BoardFace.FRONT     return Vec2.{2*dim + p.x, 2*dim + p.y};
+        //     else if face == BoardFace.RIGHT     return Vec2.{3*dim + p.x, 2*dim + p.y};
+        //     else assert(false);
+        // } else {
+        //     assert(false);
+        //     if face == BoardFace.BACK           return Vec2.{1,0};
+        //     else if face == BoardFace.BOTTOM    return Vec2.{0,3};
+        //     else if face == BoardFace.LEFT      return Vec2.{0,2};
+        //     else if face == BoardFace.TOP       return Vec2.{1,1};
+        //     else if face == BoardFace.FRONT     return Vec2.{1,2};
+        //     else if face == BoardFace.RIGHT     return Vec2.{2,0};
+        //     else assert(false);
+        // }
+
+        return p;
+    }
+
+    
+    // TODO: solve for non-example
     wrap :: (pos: Vec2, face: BoardFace, dir: FacingDir, dim: int) -> (Vec2, BoardFace, FacingDir) {
         p := pos;
 
@@ -4005,39 +3964,41 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
             if p.y >= dim return Vec2.{p.x, 0}, BoardFace.FRONT, FacingDir.DOWN;                            // top -> front
             else if p.y < 0 return Vec2.{p.x, dim-1}, BoardFace.BACK, FacingDir.UP;                         // top -> back
             else if p.x < 0 return Vec2.{dim-1, p.y}, BoardFace.LEFT, FacingDir.LEFT;                       // top -> left
-            else if p.x >= dim return Vec2.{0, p.y}, BoardFace.RIGHT, FacingDir.RIGHT;                      // top -> right
+            else if p.x >= dim return Vec2.{flip_idx(p.y, dim), 0}, BoardFace.RIGHT, FacingDir.DOWN;                      // top -> right
             else assert(false);
         } else if face == BoardFace.FRONT {
             if p.x < 0 return Vec2.{flip_idx(p.y, dim), dim-1}, BoardFace.LEFT, FacingDir.UP;               // front -> left
-            else if p.x >= dim return Vec2.{flip_idx(p.y, dim), dim-1}, BoardFace.RIGHT, FacingDir.UP;      // front -> right
+            else if p.x >= dim return Vec2.{0, p.y}, BoardFace.RIGHT, FacingDir.RIGHT;      // front -> right
             else if p.y < 0 return Vec2.{p.x, dim-1}, BoardFace.TOP, FacingDir.UP;                          // front -> top
             else if p.y >= dim return Vec2.{flip_idx(p.x, dim), dim-1}, BoardFace.BOTTOM, FacingDir.UP;     // front -> bottom
             else assert(false);
         } else if face == BoardFace.BACK {
-            if p.y >= dim return Vec2.{p.x, 0}, BoardFace.FRONT, FacingDir.DOWN;                            // back -> top
+            if p.y >= dim return Vec2.{p.x, 0}, BoardFace.TOP, FacingDir.DOWN;                            // back -> top
             else if p.y < 0 return Vec2.{flip_idx(p.x, dim), 0}, BoardFace.BOTTOM, FacingDir.DOWN;          // back -> bottom
             else if p.x < 0 return Vec2.{flip_idx(p.y, dim), 0}, BoardFace.LEFT, FacingDir.DOWN;            // back -> left
-            else if p.x >= dim return Vec2.{flip_idx(p.y, dim), 0}, BoardFace.RIGHT, FacingDir.DOWN;        // back -> right
+            else if p.x >= dim return Vec2.{flip_idx(p.y, dim),dim-1}, BoardFace.RIGHT, FacingDir.UP;        // back -> right
             else assert(false);
         } else if face == BoardFace.LEFT {
             if p.x < 0 return Vec2.{dim -1, p.y}, BoardFace.BOTTOM, FacingDir.LEFT;                         // left -> bottom
             else if p.x >= dim return Vec2.{0, p.y}, BoardFace.TOP, FacingDir.RIGHT;                        // left -> top
-            else if p.y < 0 return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.BACK, FacingDir.RIGHT;           // left -> back
+            else if p.y < 0 return Vec2.{0, p.x}, BoardFace.BACK, FacingDir.RIGHT;           // left -> back
             else if p.y >= dim return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.FRONT, FacingDir.RIGHT;       // left -> front
             else assert(false);
         } else if face == BoardFace.RIGHT {
-            if p.x < 0 return Vec2.{dim-1, p.y}, BoardFace.TOP, FacingDir.LEFT;                             // right -> top
-            else if p.x >= dim return Vec2.{0, p.y}, BoardFace.BOTTOM, FacingDir.RIGHT;                     // right -> bottom
-            else if p.y < 0 return Vec2.{dim-1, flip_idx(p.x,dim)}, BoardFace.BACK, FacingDir.LEFT;         // right -> back
-            else if p.y >= dim return Vec2.{dim-1, p.x}, BoardFace.FRONT, FacingDir.LEFT;                   // right -> front
+            if p.x < 0 return Vec2.{dim-1,p.y}, BoardFace.FRONT, FacingDir.LEFT;                             // right -> 
+            else if p.x >= dim return Vec2.{9, p.y}, BoardFace.BACK, FacingDir.RIGHT;                     // right -> 
+            else if p.y < 0 return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.BOTTOM, FacingDir.RIGHT;         // right -> 
+            else if p.y >= dim return Vec2.{dim-1, flip_idx(p.x, dim)}, BoardFace.TOP, FacingDir.LEFT;                   // right -> 
             else assert(false);
         } else if face == BoardFace.BOTTOM {
-            if p.x < 0 return Vec2.{dim-1, p.y}, BoardFace.RIGHT, FacingDir.LEFT;                           // bottom -> right
+            if p.x < 0 return Vec2.{flip_idx(p.y, dim),dim-1}, BoardFace.RIGHT, FacingDir.LEFT;                           // bottom -> right
             else if p.x >= dim return Vec2.{0, p.y}, BoardFace.LEFT, FacingDir.RIGHT;                       // bottom -> left
             else if p.y < 0 return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.BACK, FacingDir.RIGHT;           // bottom -> back
             else if p.y >= dim return Vec2.{0, flip_idx(p.x, dim)}, BoardFace.FRONT, FacingDir.RIGHT;       // bottom -> front
             else assert(false);
-        } else assert(false);
+        } else {
+            assert(false);
+        }
 
         assert(false);
         return (pos, face, dir);
@@ -4054,9 +4015,15 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
     cur_boardface := BoardFace.BACK;
     cur_facing := FacingDir.RIGHT;
 
+    DebugLoc :: struct { pos: Vec2; face: BoardFace; facing: FacingDir;}
+    debug_locs : [..]DebugLoc;
+
+    array_add(*debug_locs, DebugLoc.{cur_pos, cur_boardface, cur_facing});
+
     // Process moves
     moves : string = parts[1];
     while moves.count > 0 {
+
         // parse number
         digits := stop_at_any(moves, "LR");
         amount := string_to_int(digits);
@@ -4076,6 +4043,8 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
                 cur_pos = maybe_pos;
                 cur_boardface = maybe_face;
                 cur_facing = maybe_facing;
+                cur_dir = dirs[cur_facing];
+                array_add(*debug_locs, DebugLoc.{cur_pos, cur_boardface, cur_facing});
             } else {
                 break;
             }
@@ -4092,9 +4061,73 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
         }
     }
 
-    print("final: pos: %  face: %\n", cur_pos, cur_boardface);
+    // Create map
+    board : [..]BoardTile;
+    board_dim := face_size*4;
+    array_resize(*board, board_dim*board_dim);
 
-    part2 := 1000 * (cur_pos.y) + 4*cur_pos.x + cast(int)cur_facing;
+    stamp_face :: (dst: []BoardTile, dst_width: int, face: BoardFace, src: BoardFaceTiles, start: Vec2, face_width: int) {
+        for src_row: 0..face_width-1 {
+            for src_col: 0..face_width-1 {
+                src_idx := src_row*face_width + src_col;
+
+                dst_row := start.y*face_width + src_row;
+                dst_col := start.x*face_width + src_col;
+                dst_idx := dst_row*dst_width + dst_col;
+
+                dst[dst_idx] = src[src_idx];
+            }
+        }
+    }
+
+    if example {
+        stamp_face(board, board_dim, BoardFace.FRONT,   board_faces[BoardFace.FRONT],   upperleft_corners[BoardFace.FRONT],     edge);
+        stamp_face(board, board_dim, BoardFace.BACK,    board_faces[BoardFace.BACK],    upperleft_corners[BoardFace.BACK],      edge);
+        stamp_face(board, board_dim, BoardFace.TOP,     board_faces[BoardFace.TOP],     upperleft_corners[BoardFace.TOP],       edge);
+        stamp_face(board, board_dim, BoardFace.BOTTOM,  board_faces[BoardFace.BOTTOM],  upperleft_corners[BoardFace.BOTTOM],    edge);
+        stamp_face(board, board_dim, BoardFace.LEFT,    board_faces[BoardFace.LEFT],    upperleft_corners[BoardFace.LEFT],      edge);
+        stamp_face(board, board_dim, BoardFace.RIGHT,   board_faces[BoardFace.RIGHT],   upperleft_corners[BoardFace.RIGHT],     edge);
+    } else {
+        assert(false);
+    }
+
+    for loc : debug_locs {
+        pos := unwrap(loc.pos, loc.face, face_size, example);
+        tile := cast(u8)BoardTile.PLAYER_RIGHT + cast(u8)loc.facing;
+        board[pos.y*board_dim + pos.x] = cast(BoardTile)tile;
+    }
+
+    print_board :: (board: []BoardTile, full_dim: int) {
+        builder : String_Builder;
+        init_string_builder(*builder);
+
+        for row: 0..full_dim-1 {
+            for col: 0..full_dim-1 {
+                idx := row*full_dim + col;
+                tile := board[idx];
+                                
+                if tile == BoardTile.EMPTY append(*builder, " ");
+                else if tile == BoardTile.OPEN append(*builder, ".");
+                else if tile == BoardTile.WALL append(*builder, "#");
+                else if tile == BoardTile.PLAYER_LEFT append(*builder, "<");
+                else if tile == BoardTile.PLAYER_RIGHT append(*builder, ">");
+                else if tile == BoardTile.PLAYER_UP append(*builder, "^");
+                else if tile == BoardTile.PLAYER_DOWN append(*builder, "v");
+                else assert(false);
+            }
+            append(*builder, "\n");
+        }
+
+        s : string = builder_to_string(*builder);
+        print("%\n", s);
+    }
+    //print_board(board, board_dim);
+
+    final_pos := unwrap(cur_pos, cur_boardface, face_size, example);
+    print("pos: %  face: %  final_pos: %\n", cur_pos, cur_boardface, final_pos);
+
+    final_pos += Vec2.{1,1};
+    part2 := 1000 * (final_pos.y) + 4*final_pos.x + cast(int)cur_facing;
     print("part2: %\n", part2);
     return part2;
 }
