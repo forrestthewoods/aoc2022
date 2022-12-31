@@ -3869,12 +3869,12 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
         upperleft_corners[BoardFace.LEFT]     = Vec2.{1, 1};
         upperleft_corners[BoardFace.BOTTOM]   = Vec2.{0, 1};
     } else {
-        upperleft_corners[BoardFace.TOP]      = Vec2.{1, 1};
-        upperleft_corners[BoardFace.FRONT]    = Vec2.{0, 3};
-        upperleft_corners[BoardFace.BACK]     = Vec2.{0, 2};
-        upperleft_corners[BoardFace.RIGHT]    = Vec2.{1, 1};
-        upperleft_corners[BoardFace.LEFT]     = Vec2.{1, 2};
-        upperleft_corners[BoardFace.BOTTOM]   = Vec2.{2, 0};
+        upperleft_corners[BoardFace.TOP]      = Vec2.{1, 0};
+        upperleft_corners[BoardFace.FRONT]    = Vec2.{1, 2};
+        upperleft_corners[BoardFace.BACK]     = Vec2.{1, 0};
+        upperleft_corners[BoardFace.RIGHT]    = Vec2.{2, 0};
+        upperleft_corners[BoardFace.LEFT]     = Vec2.{0, 2};
+        upperleft_corners[BoardFace.BOTTOM]   = Vec2.{0, 3};
     }
 
     // Extract cube faces
@@ -3981,8 +3981,8 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
             if face == BoardFace.TOP {
                 if p.y >= dim       return Vec2.{p.x, 0},                   BoardFace.FRONT,    FacingDir.DOWN; 
                 else if p.y < 0     return Vec2.{p.x, dim-1},               BoardFace.BACK,     FacingDir.UP;   
-                else if p.x < 0     return Vec2.{dim-1, p.y},               BoardFace.LEFT,     FacingDir.LEFT; 
-                else if p.x >= dim  return Vec2.{flip_idx(p.y, dim), 0},    BoardFace.RIGHT,    FacingDir.DOWN; 
+                else if p.x < 0     return Vec2.{p.y, 0},                   BoardFace.LEFT,     FacingDir.DOWN; 
+                else if p.x >= dim  return Vec2.{p.y, dim-1},               BoardFace.RIGHT,    FacingDir.UP; 
                 else assert(false);
             } else if face == BoardFace.FRONT {
                 if p.x < 0          return Vec2.{dim-1, p.y},               BoardFace.LEFT,     FacingDir.LEFT;           
@@ -4055,7 +4055,8 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
         for 0..amount-1 {
             // increment pos
             maybe_pos, maybe_face, maybe_facing := wrap(cur_pos + cur_dir, cur_boardface, cur_facing, edge, example);
-            
+            assert(maybe_pos.x >= 0 && maybe_pos.x < edge && maybe_pos.y >= 0 && maybe_pos.y < edge);
+
             // get new position
             tile := get_tile(board_faces, edge, maybe_face, maybe_pos);
             assert(tile == BoardTile.OPEN || tile == BoardTile.WALL);
@@ -4147,6 +4148,8 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
     print("pos: %  face: %  final_pos: %\n", cur_pos, cur_boardface, final_pos);
 
     // 101151 - too low
+    // 134281 - too low
+    // 157134 - too high
     final_pos += Vec2.{1,1};
     part2 := 1000 * (final_pos.y) + 4*final_pos.x + cast(int)cur_facing;
     print("part2: %\n", part2);
