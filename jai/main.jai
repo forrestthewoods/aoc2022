@@ -3579,8 +3579,8 @@ d21_node :: struct {
 // Day 22
 // --------------------------------------------------------
 day22 :: () {
-    //day22_test();
-    day22_actual();
+    day22_test();
+    //day22_actual();
 }
 
 day22_test :: () {
@@ -3942,8 +3942,6 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
         //     else if face == BoardFace.RIGHT     return Vec2.{2,0};
         //     else assert(false);
         // }
-
-        return p;
     }
 
     
@@ -4092,7 +4090,7 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
     }
 
     for loc : debug_locs {
-        pos := unwrap(loc.pos, loc.face, face_size, example);
+        pos := unwrap(loc.pos, loc.face, face_size, upperleft_corners);
         tile := cast(u8)BoardTile.PLAYER_RIGHT + cast(u8)loc.facing;
         board[pos.y*board_dim + pos.x] = cast(BoardTile)tile;
     }
@@ -4123,7 +4121,7 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
     }
     //print_board(board, board_dim);
 
-    final_pos := unwrap(cur_pos, cur_boardface, face_size, example);
+    final_pos := unwrap(cur_pos, cur_boardface, face_size, upperleft_corners);
     print("pos: %  face: %  final_pos: %\n", cur_pos, cur_boardface, final_pos);
 
     final_pos += Vec2.{1,1};
