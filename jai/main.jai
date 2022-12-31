@@ -3869,7 +3869,7 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
         upperleft_corners[BoardFace.LEFT]     = Vec2.{1, 1};
         upperleft_corners[BoardFace.BOTTOM]   = Vec2.{0, 1};
     } else {
-        upperleft_corners[BoardFace.TOP]      = Vec2.{1, 0};
+        upperleft_corners[BoardFace.TOP]      = Vec2.{1, 1};
         upperleft_corners[BoardFace.FRONT]    = Vec2.{1, 2};
         upperleft_corners[BoardFace.BACK]     = Vec2.{1, 0};
         upperleft_corners[BoardFace.RIGHT]    = Vec2.{2, 0};
