@@ -26,7 +26,8 @@ main :: () {
     // day19();
     // day20();
     // day21();
-    day22();
+    // day22();
+    day23();
 }
 
 
@@ -4155,6 +4156,182 @@ day22_solve_part2 :: (input: string, example: bool) -> int {
     part2 := 1000 * (final_pos.y) + 4*final_pos.x + cast(int)cur_facing;
     //print("part2: %\n", part2);
     return part2;
+}
+
+// --------------------------------------------------------
+// Day 23
+// --------------------------------------------------------
+day23 :: () {
+    day23_test();
+    day23_actual();
+}
+
+day23_test :: () {
+    input, success := read_entire_file("data/day23_example.txt");
+    assert(success);
+
+    part1 := day23_solve(input, true);
+    print("(test) day23 part1: %\n", part1);
+    assert(part1 == 110);
+
+    part2 := day23_solve(input, false);
+    print("(test) day23 part2: %\n", part2);
+    assert(part2 == 20);
+}
+
+day23_actual :: () {
+    input, success := read_entire_file("data/day23.txt");
+    assert(success);
+
+    part1 := day23_solve(input, true);
+    print("day23 part1: %\n", part1);
+    assert(part1 == 4049);
+
+    part2 := day23_solve(input, false);
+    print("day23 part2: %\n", part2);
+    assert(part2 == 1021);
+}
+
+day23_solve :: (input: string, is_part1: bool) -> int {
+    // constants
+    num_dirs :: 4;
+    
+    neighbors :: Vec2.[
+        .{-1,-1}, .{0, -1}, .{1, -1},
+        .{-1, 0},           .{1, 0},
+        .{-1, 1}, .{0,1},   .{1, 1}
+    ];
+
+    dir_offsets :: []Vec2.[
+        .[ .{-1,-1}, .{0,-1}, .{1,-1}  ],  // nw, n, ne
+        .[ .{-1,1},  .{0,1},  .{1,1}   ],  // sw, s, se
+        .[ .{-1,1},  .{-1,0}, .{-1,-1} ],  // sw, w, nw
+        .[ .{1,1},  .{1,0},  .{1,-1}  ]   // se, e, ne
+    ];  
+
+    // parse input
+    elves : Table(Vec2, int, get_hash);
+    lines := split(input, "\r\n");
+    for row, row_idx: lines {
+        for col_idx: 0..row.count-1 {
+            tile := row[col_idx];
+            if tile == #char "#" {
+                pos := Vec2.{col_idx, row_idx};
+                table_set(*elves, pos, 0);
+            }
+        }
+    }
+
+    // simulation data
+    cur_dir := 0;
+    num_elves := elves.count;
+    elf_moves : Table(Vec2, Vec2, get_hash); // src -> dst
+    proposed_dsts : Table(Vec2, int, get_hash);
+
+    // simulate
+    round := 1;
+    while true {
+        defer round += 1;
+        defer cur_dir = (cur_dir + 1) % num_dirs;
+
+        // reset round data
+        table_reset(*elf_moves);
+        table_reset(*proposed_dsts);
+
+        // let each elf think
+        for _, elf_pos : elves {
+            // look for neighbors
+            any_neighbor := false;
+            for neighbor : neighbors {
+                neighbor_pos := elf_pos + neighbor;
+                if table_contains(*elves, neighbor_pos) {
+                    any_neighbor = true;
+                    break;
+                }
+            }
+
+            // elf doesn't move if he has NO neighbors
+            if !any_neighbor continue;
+
+            // consider all directions
+            elf_moved := false;
+            elf_dir := cur_dir;
+            for 0..num_dirs {
+                defer elf_dir = (elf_dir + 1) % num_dirs;
+
+                // check current direction
+                dir_open := true;
+                for dir_offset : dir_offsets[elf_dir] {
+                    pos := elf_pos + dir_offset;
+                    if table_contains(*elves, pos) {
+                        dir_open = false;
+                        break;
+                    }
+                }
+
+                if dir_open {
+                    // middle dir is actual move direction
+                    move_dir := dir_offsets[elf_dir][1];
+                    new_pos := elf_pos + move_dir;
+
+                    // store proposed move for elf
+                    assert(elf_pos != new_pos);
+                    table_set(*elf_moves, elf_pos, new_pos);
+
+                    // increment counter for how many elves want to move here
+                    <<find_or_add(*proposed_dsts, new_pos) += 1;
+                    break;
+                }
+            }
+        }
+
+        if !is_part1 && elf_moves.count == 0 return round;
+
+        // process each move
+        for dst, src: elf_moves {
+            // ignore moves if multiple elves want to go to the same spot
+            num_dst := table_find_assert(*proposed_dsts, dst);
+            if num_dst > 1 continue;
+
+            // move elf
+            removed := table_remove(*elves, src);
+            assert(removed);
+            table_set(*elves, dst, 0);
+        }        
+        assert(elves.count == num_elves); // shouldn't change
+
+        if is_part1 && round == 10 break;
+    }
+
+    // compute min/max
+    elf_min := Vec2.{10_000, 10_000};
+    elf_max := Vec2.{-10_000, -10_000};
+    for _, elf_pos : elves {
+        elf_min.x = min(elf_min.x, elf_pos.x);
+        elf_min.y = min(elf_min.y, elf_pos.y);
+        elf_max.x = max(elf_max.x, elf_pos.x);
+        elf_max.y = max(elf_max.y, elf_pos.y);
+    }
+
+    // print board
+    if false {
+        board : [..]u8;
+        for row: elf_min.y..elf_max.y {
+            for col: elf_min.x..elf_max.x {
+                pos := Vec2.{col, row};
+                tile : u8 = xx ifx table_contains(*elves, pos) then #char "#" else #char ".";
+                array_add(*board, tile);
+            }
+            array_add(*board, #char "\n");
+        }
+        print("\n%\n", to_string(board));
+    }
+
+    // compute num empty slots
+    area := (elf_max.x - elf_min.x + 1) * (elf_max.y - elf_min.y + 1);
+    part1 := area - elves.count;
+
+    return part1;
 }
 
 #import "Basic";
