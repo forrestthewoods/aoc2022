@@ -4644,6 +4644,50 @@ day25_actual :: () {
 }
 
 day25_solve :: (input: string) -> int {
+
+    from_snafu :: (s: string) -> int {
+        result := 0;
+
+        base := 1;
+        for <digit : cast([]u8)s {
+            if digit == #char"2"        result += 2*base;
+            else if digit == #char"1"   result += base;
+            else if digit == #char"0"   result = result;
+            else if digit == #char"-"   result -= base;
+            else if digit == #char"="   result -= 2*base;
+
+            base *= 5;
+        }
+
+        return result;
+    }
+
+    to_snafu :: (init_value: int) -> string {
+        result : [..]u8;
+
+        v := init_value;
+        while v > 0 {
+
+        }
+    }
+
+    assert_eq(from_snafu("1"), 1);
+    assert_eq(from_snafu("2"), 2);
+    assert_eq(from_snafu("1="), 3);
+    assert_eq(from_snafu("1-"), 4);
+    assert_eq(from_snafu("10"), 5);
+    assert_eq(from_snafu("11"), 6);
+    assert_eq(from_snafu("12"), 7);
+    assert_eq(from_snafu("2="), 8);
+    assert_eq(from_snafu("2-"), 9);
+    assert_eq(from_snafu("20"), 10);
+    assert_eq(from_snafu("1=0"), 15);
+    assert_eq(from_snafu("1-0"), 20);
+    assert_eq(from_snafu("1=11-2"), 2022);
+    assert_eq(from_snafu("1-0---0"), 12345);
+    assert_eq(from_snafu("1121-1110-1=0"), 314159265);
+   
+
     return 0;
 }
 
