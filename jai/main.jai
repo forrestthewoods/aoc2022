@@ -103,6 +103,18 @@ assert_eq:: (a: Code, b: Code) #expand {
         va, sa, vb, sb);
 }
 
+expect_eq:: (a: Code, b: Code) #expand {
+    sa := #run code_to_string(a);
+    va := #insert a;
+
+    sb := #run code_to_string(b);
+    vb := #insert b;
+    if va != vb {
+        print("expectation failed: (left == right)\n   left: %\n  right: %\n  expression: (% == %)\n",
+        va, vb, sa, sb);
+    }
+}
+
 assert_ne:: (a: Code, b: Code) #expand {
     sa := #run code_to_string(a);
     va := #insert a;
@@ -4665,28 +4677,88 @@ day25_solve :: (input: string) -> int {
     to_snafu :: (init_value: int) -> string {
         result : [..]u8;
 
-        v := init_value;
-        while v > 0 {
-
+        base := 1;
+        while 2*base < init_value {
+            base *= 5;
         }
+
+        value := init_value;
+        while base > 0 {
+            if value >= -2*base/5 && value <= 2*base/5 {
+                // do nothing
+                array_add(*result, #char "0");
+            }
+            else if value > base {
+                array_add(*result, #char "2");
+                value -= 2*base;
+            } else if value < -base {
+                array_add(*result, #char "=");
+                value += 2*base;
+            } else if value > 0 {
+                array_add(*result, #char "1");
+                value -= base;
+            } else {
+                array_add(*result, #char "-");
+                value += base;
+            }
+            
+            base /= 5;
+        }
+
+        return cast(string)result;
     }
 
-    assert_eq(from_snafu("1"), 1);
-    assert_eq(from_snafu("2"), 2);
-    assert_eq(from_snafu("1="), 3);
-    assert_eq(from_snafu("1-"), 4);
-    assert_eq(from_snafu("10"), 5);
-    assert_eq(from_snafu("11"), 6);
-    assert_eq(from_snafu("12"), 7);
-    assert_eq(from_snafu("2="), 8);
-    assert_eq(from_snafu("2-"), 9);
-    assert_eq(from_snafu("20"), 10);
-    assert_eq(from_snafu("1=0"), 15);
-    assert_eq(from_snafu("1-0"), 20);
-    assert_eq(from_snafu("1=11-2"), 2022);
-    assert_eq(from_snafu("1-0---0"), 12345);
-    assert_eq(from_snafu("1121-1110-1=0"), 314159265);
+    // 4890 = 2=-1=0
+    // 0*1 + -2*5 + 1*25 + -1*125 + -2*625 + 2*3125
+    // -10 + 25 - 125 - 1250 + 6250
+
+    // 4890
+    // base: 3125
+    // subtract 2*3125 = -1360  result: 2
+    // add 2*625 = -110         result: 2=
+    // add 125 = 15             result: 2=-
+    // subtract 25 = -10        result: 2=-1
+    // add 10 = 0               result: 2=-1-
+    // 0 = 0                    result: 2=-1-0
+
+    // 198 
+    // base: 125
+    // (125) subtract 2*125 = -52       result: 2
+    // (25) add 2*25 = -2               result: 2=
+    // (5) nothing                      result: 2=0
+    // (1) add 2 = 0                    result: 2=0=
+
+    expect_eq(from_snafu("1"), 1);
+    expect_eq(from_snafu("2"), 2);
+    expect_eq(from_snafu("1="), 3);
+    expect_eq(from_snafu("1-"), 4);
+    expect_eq(from_snafu("10"), 5);
+    expect_eq(from_snafu("11"), 6);
+    expect_eq(from_snafu("12"), 7);
+    expect_eq(from_snafu("2="), 8);
+    expect_eq(from_snafu("2-"), 9);
+    expect_eq(from_snafu("20"), 10);
+    expect_eq(from_snafu("1=0"), 15);
+    expect_eq(from_snafu("1-0"), 20);
+    expect_eq(from_snafu("1=11-2"), 2022);
+    expect_eq(from_snafu("1-0---0"), 12345);
+    expect_eq(from_snafu("1121-1110-1=0"), 314159265);
+
+    expect_eq(to_snafu(1747),   "1=-0-2");
+    expect_eq(to_snafu(906),    "12111");
+    expect_eq(to_snafu(198),    "2=0=");
+    expect_eq(to_snafu(11),     "21");
+    expect_eq(to_snafu(201),    "2=01");
+    expect_eq(to_snafu(31),     "111");
+    expect_eq(to_snafu(1257),   "20012");
+    expect_eq(to_snafu(32),     "112");
+    expect_eq(to_snafu(353),    "1=-1=");
+    expect_eq(to_snafu(107),    "1-12");
+    expect_eq(to_snafu(7),      "12");
+    expect_eq(to_snafu(3),      "1=");
+    expect_eq(to_snafu(37),     "122");
    
+    expect_eq(to_snafu(4890),   "2=-1=0");
 
     return 0;
 }
