@@ -27,7 +27,8 @@ main :: () {
     // day20();
     // day21();
     // day22();
-    day23();
+    // day23();
+    day24();
 }
 
 
@@ -62,6 +63,13 @@ next_line :: (s : *string) -> string {
     return result;
 }
 
+to_bytes :: (s:string) -> []u8 {
+    result : []u8;
+    result.data = s.data;
+    result.count = s.count;
+    return result;
+}
+
 map :: (array: [] $T, f: (T) -> $R) -> [] R {
     result: [..] R;
 
@@ -72,6 +80,19 @@ map :: (array: [] $T, f: (T) -> $R) -> [] R {
     for array array_add(*result, f(it));
 
     return result;
+}
+
+rem :: (a: s64, b: s64) -> s64 {
+    assert(b > 0);
+
+    rem := a;
+    if rem > 0 {
+        rem -= (rem/b) * b;
+    } else if rem < 0{
+        rem += (Math.abs(rem) / b + 1) * b;
+    }
+
+    return rem;
 }
 
 heap_push :: (arr: *[..]$T, v: T, f: (T,T) -> bool) {
@@ -153,6 +174,14 @@ operator + :: (a: Vec2, b: Vec2) -> Vec2 {
     return add(a,b);
 }
 
+operator - :: (a: Vec2, b: Vec2) -> Vec2 {
+    return subtract(a,b);
+}
+
+operator * :: (a: Vec2, b: int) -> Vec2 {
+    return Vec2.{a.x*b, a.y*b};
+}
+
 subtract :: (a: Vec2, b: Vec2) -> Vec2 {
     result : Vec2;
     result.x = a.x - b.x;
@@ -166,6 +195,10 @@ manhatten_length :: (v: Vec2) -> int {
 
 operator == :: (a: Vec2, b: Vec2) -> bool {
     return a.x == b.x && a.y == b.y;
+}
+
+mod :: (v: Vec2, m: Vec2) -> Vec2 {
+    return Vec2.{rem(v.x, m.x), rem(v.y, m.y)};
 }
 
 get_hash :: (v: Vec2) -> u32 {
@@ -3357,19 +3390,6 @@ day20_solve :: (input: string, is_part1: bool) -> s64 {
     zero_idx := 0;
     decryption_key :: 811589153;
 
-    rem :: (a: s64, b: s64) -> s64 {
-        assert(b > 0);
-
-        rem := a;
-        if rem > 0 {
-            rem -= (rem/b) * b;
-        } else {
-            rem += (Math.abs(rem) / b + 1) * b;
-        }
-
-        return rem;
-    }
-
     // parse input
     values : [..]s64;
     indices : [..]int;
@@ -4332,6 +4352,190 @@ day23_solve :: (input: string, is_part1: bool) -> int {
     part1 := area - elves.count;
 
     return part1;
+}
+
+// --------------------------------------------------------
+// Day 24
+// --------------------------------------------------------
+day24 :: () {
+    day24_test();
+    //day24_actual();
+}
+
+day24_test :: () {
+    input, success := read_entire_file("data/day24_example.txt");
+    assert(success);
+
+    part1 := day24_solve(input);
+    print("(test) day24 part1: %\n", part1);
+
+    // part2 := day24_solve(input);
+    // print("(test) day24 part2: %\n", part2);
+}
+
+day24_actual :: () {
+    input, success := read_entire_file("data/day24.txt");
+    assert(success);
+
+    part1 := day24_solve(input);
+    print("day24 part1: %\n", part1);
+    assert(part1 == 4049);
+
+    // part2 := day24_solve(input);
+    // print("day24 part2: %\n", part2);
+    // assert(part2 == 1021);
+}
+
+day24_solve :: (input: string) -> int {
+    elf_dirs :: Vec2.[
+        .{ 0,  0},
+        .{ 0,  1},
+        .{ 0, -1},
+        .{ 1,  0},
+        .{-1,  0},
+    ];
+
+    BlizzardDir :: enum u8 { North; South; East; West; }
+    blizzard_dirs :: Vec2.[
+        .{ 0, -1},  // north
+        .{ 0,  1},  // south
+        .{ 1,  0},  // east
+        .{-1,  0},  // west
+    ];
+
+    // parse input
+    lines := split(input, "\r\n");
+    board_height := lines.count;
+    board_width := lines[0].count;
+    inner_width := board_width - 2;
+    inner_height := board_height - 2;
+
+    start_col := find_index_from_left(lines[0], #char ".");
+    goal_col := find_index_from_left(lines[lines.count-1], #char ".");
+    goal_pos := Vec2.{goal_col, board_height - 1};
+
+
+    blizzards : [4][..]Vec2;
+    for row, row_idx: lines {
+        for tile, col_idx: cast([]u8)row {
+            pos := Vec2.{col_idx, row_idx};
+            if tile == #char "^" array_add(*blizzards[BlizzardDir.North], pos);
+            else if tile == #char "v" array_add(*blizzards[BlizzardDir.South], pos);
+            else if tile == #char ">" array_add(*blizzards[BlizzardDir.East], pos);
+            else if tile == #char "<" array_add(*blizzards[BlizzardDir.West], pos);
+        }
+    }
+
+    // BFS data
+    search_states : [..]d23_SearchState;
+    visited : Table(d23_SearchState, int, get_hash_d23_search_state);
+    blizzard_map : Table(Vec2, int, get_hash);
+
+    start_pos := Vec2.{start_col, 0};
+    initial_state := d23_SearchState.{
+            0, 
+            manhatten_length(goal_pos - Vec2.{start_col, 0}),
+            start_pos};
+
+        
+    array_add(*search_states, initial_state);
+    table_set(*visited, initial_state, 0);
+
+    wrap_blizzard :: (p: Vec2, inner_width: int, inner_height: int) -> Vec2 {
+        result := p - Vec2.{1,1};   // inset
+        result = mod(result, Vec2.{inner_width+1, inner_height+1}); // wrap
+        result += Vec2.{1,1};   // full board pos
+        return result;
+    }
+
+    // make sure wrap_blizzard actually works
+    test_wrap :: (in: Vec2, expected: Vec2, w: int, h: int) {
+        wrapped := wrap_blizzard(in, w, h);
+        assert(wrapped == expected, "% wrapped to % but expected %\n", in, wrapped, expected);
+    }
+    test_wrap(Vec2.{3,1},                 Vec2.{3, 1}, inner_width, inner_height);
+    test_wrap(Vec2.{3,1} + Vec2.{0,-1},   Vec2.{3, board_height - 1}, inner_width, inner_height);
+    test_wrap(Vec2.{3,1} + Vec2.{0,-2},   Vec2.{3, board_height - 2}, inner_width, inner_height);
+    test_wrap(Vec2.{3,1} + Vec2.{0,-4},   Vec2.{3, 0}, inner_width, inner_height);
+    test_wrap(Vec2.{3,1} + Vec2.{0,-5},   Vec2.{3, board_height - 1}, inner_width, inner_height);
+    //test_wrap(Vec2.{0,3},   Vec2.{board_width-1, 3},    inner_width, inner_height);
+
+
+    // simulate - BFS
+    part1 := -1;
+    done := false;
+    while !done {
+        // reset scratch data
+        table_reset(*blizzard_map);
+
+        ss := heap_pop(*search_states, d23_ss_cmp);
+
+        // calc blizzard positions
+        for i: 0..blizzards.count-1 {
+            blizzard_dir := blizzard_dirs[i];
+
+            for initial_pos : blizzards[i] {
+                blizzard_pos := wrap_blizzard(
+                    initial_pos + blizzard_dir*ss.minute, 
+                    inner_width,inner_height);
+
+                // store in table
+                table_set(*blizzard_map, blizzard_pos, 0);
+            }
+        }
+
+        // elf try to move
+        for offset : elf_dirs {
+            maybe_pos := ss.elf_pos + offset;
+
+            // found the goal!
+            if maybe_pos == goal_pos {
+                part1 = ss.minute + 1;
+                done = true;
+                break;
+            }
+
+            // don't move into walls
+            if maybe_pos.x <= 0 || maybe_pos.y <= 0 || maybe_pos.x >= board_width - 1 || maybe_pos.y >= board_height - 1 continue;
+
+            // don't move into blizzards
+            if table_contains(*blizzard_map, maybe_pos) continue;
+
+            // create new search ss
+            new_ss : d23_SearchState;
+            new_ss.minute = ss.minute + 1;
+            new_ss.heuristic = new_ss.minute + manhatten_length(goal_pos - maybe_pos);
+            new_ss.elf_pos = maybe_pos;
+
+            // don't revisit states
+            if table_contains(*visited, new_ss) continue;
+
+            // add search state to queue
+            heap_push(*search_states, new_ss, d23_ss_cmp);
+            table_set(*visited, new_ss, 0);
+        }
+    }
+
+    return part1;
+}
+
+d23_SearchState :: struct {
+    minute: int;
+    heuristic : int;
+    elf_pos : Vec2;
+}
+d23_ss_cmp :: (a: d23_SearchState, b: d23_SearchState) -> bool { return a.heuristic < b.heuristic; }
+operator == :: (a: d23_SearchState, b: d23_SearchState) -> bool {
+    return a.minute == b.minute 
+        && a.heuristic == b.heuristic
+        && a.elf_pos == b.elf_pos;
+}
+get_hash_d23_search_state :: (v: d23_SearchState) -> u32 {
+    Hash :: #import "Hash";
+    result : u32 = Hash.get_hash(v.minute);
+    result = hash_combine(result, Hash.get_hash(v.heuristic));
+    result = hash_combine(result, get_hash(v.elf_pos));
+    return result;
 }
 
 #import "Basic";
