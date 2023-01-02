@@ -95,6 +95,13 @@ rem :: (a: s64, b: s64) -> s64 {
     return rem;
 }
 
+modulo :: (a: s64, b: s64) -> s64 {
+    remainder := a % b;
+    result := ifx remainder < 0 then remainder + b else remainder;
+    assert(result >= 0 && result < b);
+    return result;
+}
+
 heap_push :: (arr: *[..]$T, v: T, f: (T,T) -> bool) {
     // add to end
     array_add(arr, v);
@@ -198,7 +205,7 @@ operator == :: (a: Vec2, b: Vec2) -> bool {
 }
 
 mod :: (v: Vec2, m: Vec2) -> Vec2 {
-    return Vec2.{rem(v.x, m.x), rem(v.y, m.y)};
+    return Vec2.{modulo(v.x, m.x), modulo(v.y, m.y)};
 }
 
 get_hash :: (v: Vec2) -> u32 {
@@ -4359,7 +4366,7 @@ day23_solve :: (input: string, is_part1: bool) -> int {
 // --------------------------------------------------------
 day24 :: () {
     day24_test();
-    //day24_actual();
+    day24_actual();
 }
 
 day24_test :: () {
@@ -4379,7 +4386,8 @@ day24_actual :: () {
 
     part1 := day24_solve(input);
     print("day24 part1: %\n", part1);
-    assert(part1 == 4049);
+    assert(part1 == 292);
+    //assert(part1 == 4049);
 
     // part2 := day24_solve(input);
     // print("day24 part2: %\n", part2);
@@ -4419,6 +4427,8 @@ day24_solve :: (input: string) -> int {
     for row, row_idx: lines {
         for tile, col_idx: cast([]u8)row {
             pos := Vec2.{col_idx, row_idx};
+            pos -= Vec2.{1,1}; // inset blizzard positions
+
             if tile == #char "^" array_add(*blizzards[BlizzardDir.North], pos);
             else if tile == #char "v" array_add(*blizzards[BlizzardDir.South], pos);
             else if tile == #char ">" array_add(*blizzards[BlizzardDir.East], pos);
@@ -4442,22 +4452,47 @@ day24_solve :: (input: string) -> int {
     table_set(*visited, initial_state, 0);
 
     wrap_blizzard :: (p: Vec2, inner_width: int, inner_height: int) -> Vec2 {
-        result := p - Vec2.{1,1};   // inset
-        result = mod(result, Vec2.{inner_width+1, inner_height+1}); // wrap
-        result += Vec2.{1,1};   // full board pos
+        result := mod(p, Vec2.{inner_width, inner_height}); // wrap
         return result;
+    }
+
+    assert_eq :: (a: $T, b: $U) #expand {
+        assert(a == b, "expected [%] to equal [%]\n", a, b);
     }
 
     // make sure wrap_blizzard actually works
     test_wrap :: (in: Vec2, expected: Vec2, w: int, h: int) {
-        wrapped := wrap_blizzard(in, w, h);
-        assert(wrapped == expected, "% wrapped to % but expected %\n", in, wrapped, expected);
+         wrapped := wrap_blizzard(in, w, h);
+         assert(wrapped == expected, "% wrapped to % but expected %\n", in, wrapped, expected);
     }
-    test_wrap(Vec2.{3,1},                 Vec2.{3, 1}, inner_width, inner_height);
-    test_wrap(Vec2.{3,1} + Vec2.{0,-1},   Vec2.{3, board_height - 1}, inner_width, inner_height);
-    test_wrap(Vec2.{3,1} + Vec2.{0,-2},   Vec2.{3, board_height - 2}, inner_width, inner_height);
-    test_wrap(Vec2.{3,1} + Vec2.{0,-4},   Vec2.{3, 0}, inner_width, inner_height);
-    test_wrap(Vec2.{3,1} + Vec2.{0,-5},   Vec2.{3, board_height - 1}, inner_width, inner_height);
+
+    if false {
+        // off the right
+        test_wrap(Vec2.{5,0} + Vec2.{1,0}, Vec2.{0,0}, inner_width, inner_height);
+        test_wrap(Vec2.{5,0} + Vec2.{2,0}, Vec2.{1,0}, inner_width, inner_height);
+        test_wrap(Vec2.{5,0} + Vec2.{3,0}, Vec2.{2,0}, inner_width, inner_height);
+        test_wrap(Vec2.{5,0} + Vec2.{4,0}, Vec2.{3,0}, inner_width, inner_height);
+        test_wrap(Vec2.{5,0} + Vec2.{5,0}, Vec2.{4,0}, inner_width, inner_height);
+        test_wrap(Vec2.{5,0} + Vec2.{6,0}, Vec2.{5,0}, inner_width, inner_height);
+        test_wrap(Vec2.{5,0} + Vec2.{7,0}, Vec2.{0,0}, inner_width, inner_height);
+        test_wrap(Vec2.{5,0} + Vec2.{13,0}, Vec2.{0,0}, inner_width, inner_height);
+
+        // off the left
+        test_wrap(Vec2.{0,0} + Vec2.{-1,0}, Vec2.{5,0}, inner_width, inner_height);
+        test_wrap(Vec2.{0,0} + Vec2.{-2,0}, Vec2.{4,0}, inner_width, inner_height);
+        test_wrap(Vec2.{0,0} + Vec2.{-3,0}, Vec2.{3,0}, inner_width, inner_height);
+        test_wrap(Vec2.{0,0} + Vec2.{-4,0}, Vec2.{2,0}, inner_width, inner_height);
+        test_wrap(Vec2.{0,0} + Vec2.{-5,0}, Vec2.{1,0}, inner_width, inner_height);
+        test_wrap(Vec2.{0,0} + Vec2.{-6,0}, Vec2.{0,0}, inner_width, inner_height);
+        test_wrap(Vec2.{0,0} + Vec2.{-7,0}, Vec2.{5,0}, inner_width, inner_height);
+    }
+
+
+    // test_wrap(Vec2.{3,1},                 Vec2.{3, 1}, inner_width, inner_height);
+    // test_wrap(Vec2.{3,1} + Vec2.{0,-1},   Vec2.{3, board_height - 1}, inner_width, inner_height);
+    // test_wrap(Vec2.{3,1} + Vec2.{0,-2},   Vec2.{3, board_height - 2}, inner_width, inner_height);
+    // test_wrap(Vec2.{3,1} + Vec2.{0,-4},   Vec2.{3, 0}, inner_width, inner_height);
+    // test_wrap(Vec2.{3,1} + Vec2.{0,-5},   Vec2.{3, board_height - 1}, inner_width, inner_height);
     //test_wrap(Vec2.{0,3},   Vec2.{board_width-1, 3},    inner_width, inner_height);
 
 
@@ -4470,6 +4505,9 @@ day24_solve :: (input: string) -> int {
 
         ss := heap_pop(*search_states, d23_ss_cmp);
 
+        // increment minute to simulate
+        ss.minute += 1;
+
         // calc blizzard positions
         for i: 0..blizzards.count-1 {
             blizzard_dir := blizzard_dirs[i];
@@ -4477,10 +4515,14 @@ day24_solve :: (input: string) -> int {
             for initial_pos : blizzards[i] {
                 blizzard_pos := wrap_blizzard(
                     initial_pos + blizzard_dir*ss.minute, 
-                    inner_width,inner_height);
+                    inner_width, 
+                    inner_height);
+
+                // blizzard positions are stored "inset"
+                real_pos := blizzard_pos + Vec2.{1,1};
 
                 // store in table
-                table_set(*blizzard_map, blizzard_pos, 0);
+                table_set(*blizzard_map, real_pos, 0);
             }
         }
 
@@ -4490,20 +4532,20 @@ day24_solve :: (input: string) -> int {
 
             // found the goal!
             if maybe_pos == goal_pos {
-                part1 = ss.minute + 1;
+                part1 = ss.minute;
                 done = true;
                 break;
             }
 
             // don't move into walls
-            if maybe_pos.x <= 0 || maybe_pos.y <= 0 || maybe_pos.x >= board_width - 1 || maybe_pos.y >= board_height - 1 continue;
+            if maybe_pos != start_pos && (maybe_pos.x <= 0 || maybe_pos.y <= 0 || maybe_pos.x >= board_width - 1 || maybe_pos.y >= board_height - 1) continue;
 
             // don't move into blizzards
             if table_contains(*blizzard_map, maybe_pos) continue;
 
             // create new search ss
             new_ss : d23_SearchState;
-            new_ss.minute = ss.minute + 1;
+            new_ss.minute = ss.minute;
             new_ss.heuristic = new_ss.minute + manhatten_length(goal_pos - maybe_pos);
             new_ss.elf_pos = maybe_pos;
 
@@ -4516,6 +4558,7 @@ day24_solve :: (input: string) -> int {
         }
     }
 
+    // 250 - too low
     return part1;
 }
 
