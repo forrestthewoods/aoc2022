@@ -4636,7 +4636,7 @@ get_hash_d23_search_state :: (v: d23_SearchState) -> u32 {
 // --------------------------------------------------------
 day25 :: () {
     day25_test();
-    //day25_actual();
+    day25_actual();
 }
 
 day25_test :: () {
@@ -4645,6 +4645,7 @@ day25_test :: () {
 
     part1 := day25_solve(input);
     print("(test) day25 part1: %\n", part1);
+    expect_eq(part1, "2=-1=0");
 }
 
 day25_actual :: () {
@@ -4655,7 +4656,7 @@ day25_actual :: () {
     print("day25 part1: %\n", part1);
 }
 
-day25_solve :: (input: string) -> int {
+day25_solve :: (input: string) -> string {
 
     from_snafu :: (s: string) -> int {
         result := 0;
@@ -4678,20 +4679,23 @@ day25_solve :: (input: string) -> int {
         result : [..]u8;
 
         base := 1;
-        while 2*base < init_value {
+        while 2*base + 2*(base/5) < init_value {
             base *= 5;
         }
 
         value := init_value;
         while base > 0 {
-            if value >= -2*base/5 && value <= 2*base/5 {
+            substep := 2*base/5;
+            subsubstep := substep/5;
+
+            if value >= -substep && value <= substep {
                 // do nothing
                 array_add(*result, #char "0");
             }
-            else if value > base {
+            else if value > base + substep + subsubstep {
                 array_add(*result, #char "2");
                 value -= 2*base;
-            } else if value < -base {
+            } else if value < -base - substep - subsubstep {
                 array_add(*result, #char "=");
                 value += 2*base;
             } else if value > 0 {
@@ -4707,60 +4711,85 @@ day25_solve :: (input: string) -> int {
 
         return cast(string)result;
     }
+    
+    // 1  5  25  125  625  1250  6250
 
-    // 4890 = 2=-1=0
-    // 0*1 + -2*5 + 1*25 + -1*125 + -2*625 + 2*3125
-    // -10 + 25 - 125 - 1250 + 6250
+    // left: 1==222  right: 1=-0-2
+    // 906 == 12111
 
-    // 4890
-    // base: 3125
-    // subtract 2*3125 = -1360  result: 2
-    // add 2*625 = -110         result: 2=
-    // add 125 = 15             result: 2=-
-    // subtract 25 = -10        result: 2=-1
-    // add 10 = 0               result: 2=-1-
-    // 0 = 0                    result: 2=-1-0
+    expect_eq(from_snafu("1"),              1);
+    expect_eq(from_snafu("2"),              2);
+    expect_eq(from_snafu("1="),             3);
+    expect_eq(from_snafu("1-"),             4);
+    expect_eq(from_snafu("10"),             5);
+    expect_eq(from_snafu("11"),             6);
+    expect_eq(from_snafu("12"),             7);
+    expect_eq(from_snafu("2="),             8);
+    expect_eq(from_snafu("2-"),             9);
+    expect_eq(from_snafu("20"),             10);
+    expect_eq(from_snafu("1=0"),            15);
+    expect_eq(from_snafu("1-0"),            20);
+    expect_eq(from_snafu("1=11-2"),         2022);
+    expect_eq(from_snafu("1-0---0"),        12345);
+    expect_eq(from_snafu("1121-1110-1=0"),  314159265);
 
-    // 198 
-    // base: 125
-    // (125) subtract 2*125 = -52       result: 2
-    // (25) add 2*25 = -2               result: 2=
-    // (5) nothing                      result: 2=0
-    // (1) add 2 = 0                    result: 2=0=
+    expect_eq(to_snafu(1),                  "1");
+    expect_eq(to_snafu(2),                  "2");
+    expect_eq(to_snafu(3),                  "1=");
+    expect_eq(to_snafu(4),                  "1-");
+    expect_eq(to_snafu(5),                  "10");
+    expect_eq(to_snafu(6),                  "11");
+    expect_eq(to_snafu(7),                  "12");
+    expect_eq(to_snafu(8),                  "2=" );
+    expect_eq(to_snafu(9),                  "2-" );
+    expect_eq(to_snafu(10),                 "20");
+    expect_eq(to_snafu(15),                 "1=0");
+    expect_eq(to_snafu(20),                 "1-0");
+    expect_eq(to_snafu(2022),               "1=11-2");
+    expect_eq(to_snafu(12345),              "1-0---0");
+    expect_eq(to_snafu(314159265),          "1121-1110-1=0");
 
-    expect_eq(from_snafu("1"), 1);
-    expect_eq(from_snafu("2"), 2);
-    expect_eq(from_snafu("1="), 3);
-    expect_eq(from_snafu("1-"), 4);
-    expect_eq(from_snafu("10"), 5);
-    expect_eq(from_snafu("11"), 6);
-    expect_eq(from_snafu("12"), 7);
-    expect_eq(from_snafu("2="), 8);
-    expect_eq(from_snafu("2-"), 9);
-    expect_eq(from_snafu("20"), 10);
-    expect_eq(from_snafu("1=0"), 15);
-    expect_eq(from_snafu("1-0"), 20);
-    expect_eq(from_snafu("1=11-2"), 2022);
-    expect_eq(from_snafu("1-0---0"), 12345);
-    expect_eq(from_snafu("1121-1110-1=0"), 314159265);
+    expect_eq(to_snafu(1747),               "1=-0-2");
+    expect_eq(to_snafu(906),                "12111");
+    expect_eq(to_snafu(198),                "2=0=");
+    expect_eq(to_snafu(11),                 "21");
+    expect_eq(to_snafu(201),                "2=01");
+    expect_eq(to_snafu(31),                 "111");
+    expect_eq(to_snafu(1257),               "20012");
+    expect_eq(to_snafu(32),                 "112");
+    expect_eq(to_snafu(353),                "1=-1=");
+    expect_eq(to_snafu(107),                "1-12");
+    expect_eq(to_snafu(7),                  "12");
+    expect_eq(to_snafu(3),                  "1=");
+    expect_eq(to_snafu(37),                 "122");
 
-    expect_eq(to_snafu(1747),   "1=-0-2");
-    expect_eq(to_snafu(906),    "12111");
-    expect_eq(to_snafu(198),    "2=0=");
-    expect_eq(to_snafu(11),     "21");
-    expect_eq(to_snafu(201),    "2=01");
-    expect_eq(to_snafu(31),     "111");
-    expect_eq(to_snafu(1257),   "20012");
-    expect_eq(to_snafu(32),     "112");
-    expect_eq(to_snafu(353),    "1=-1=");
-    expect_eq(to_snafu(107),    "1-12");
-    expect_eq(to_snafu(7),      "12");
-    expect_eq(to_snafu(3),      "1=");
-    expect_eq(to_snafu(37),     "122");
+    expect_eq(from_snafu("1=-0-2"),         1747);
+    expect_eq(from_snafu("12111"),          906);
+    expect_eq(from_snafu("2=0="),           198);
+    expect_eq(from_snafu("21"),             11);
+    expect_eq(from_snafu("2=01"),           201);
+    expect_eq(from_snafu("111"),            31);
+    expect_eq(from_snafu("20012"),          1257);
+    expect_eq(from_snafu("112"),            32);
+    expect_eq(from_snafu("1=-1="),          353);
+    expect_eq(from_snafu("1-12"),           107);
+    expect_eq(from_snafu("12"),             7);
+    expect_eq(from_snafu("1="),             3);
+    expect_eq(from_snafu("122"),            37);
    
-    expect_eq(to_snafu(4890),   "2=-1=0");
+    expect_eq(to_snafu(4890),               "2=-1=0");
+    expect_eq(from_snafu("2=-1=0"),         4890);
 
-    return 0;
+    sum := 0;
+    for line : split(input, "\r\n") {
+        sum += from_snafu(line);
+    }
+    part1 := to_snafu(sum);
+
+    expect_eq(from_snafu(part1), sum);
+
+    // incorrect: 2-2--02=1---120-2222
+    return part1;
 }
 
 #import "Basic";
