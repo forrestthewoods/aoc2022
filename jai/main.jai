@@ -28,7 +28,8 @@ main :: () {
     // day21();
     // day22();
     // day23();
-    day24();
+    // day24();
+    day25();
 }
 
 
@@ -4616,6 +4617,34 @@ get_hash_d23_search_state :: (v: d23_SearchState) -> u32 {
     result = hash_combine(result, Hash.get_hash(v.heuristic));
     result = hash_combine(result, get_hash(v.elf_pos));
     return result;
+}
+
+// --------------------------------------------------------
+// Day 25
+// --------------------------------------------------------
+day25 :: () {
+    day25_test();
+    //day25_actual();
+}
+
+day25_test :: () {
+    input, success := read_entire_file("data/day25_example.txt");
+    assert(success);
+
+    part1 := day25_solve(input);
+    print("(test) day25 part1: %\n", part1);
+}
+
+day25_actual :: () {
+    input, success := read_entire_file("data/day25.txt");
+    assert(success);
+
+    part1 := day25_solve(input);
+    print("day25 part1: %\n", part1);
+}
+
+day25_solve :: (input: string) -> int {
+    return 0;
 }
 
 #import "Basic";
