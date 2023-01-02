@@ -4444,6 +4444,7 @@ day24_actual :: () {
     print("day24 part1: %\n", part1);
     print("day24 part2: %\n", part2);
     assert_eq(part1, 292);
+    assert_eq(part2, 816);
 }
 
 day24_solve :: (input: string) -> int, int {
@@ -4553,7 +4554,6 @@ day24_solve :: (input: string) -> int, int {
                 if ss.stage == 0 {
                     part1 = min(part1, ss.minute);
                     new_ss.stage = 1;
-                    break;
                 }
                 else if ss.stage == 1 {
                     new_ss.stage = 2;
