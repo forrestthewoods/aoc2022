@@ -92,18 +92,19 @@ code_to_string :: (code: Code) -> string #expand {
     return builder_to_string(*builder, allocator=temp);
 }
 
-assert_eq:: (a: Code, b: Code) #expand {
+assert_eq :: (a: Code, b: Code) #expand {
     sa := #run code_to_string(a);
     va := #insert a;
 
     sb := #run code_to_string(b);
     vb := #insert b;
     assert(va == vb, 
-        "(left == right)\n  left: %  expr: %\n  right: %  expr: %\n",
-        va, sa, vb, sb);
+        "(left == right)\n  left: %  expr: %\n  right: %  expr: %\n  loc: %\n",
+        va, sa, vb, sb,
+        #location(a));
 }
 
-expect_eq:: (a: Code, b: Code) #expand {
+expect_eq :: (a: Code, b: Code) #expand {
     sa := #run code_to_string(a);
     va := #insert a;
 
@@ -115,7 +116,7 @@ expect_eq:: (a: Code, b: Code) #expand {
     }
 }
 
-assert_ne:: (a: Code, b: Code) #expand {
+assert_ne :: (a: Code, b: Code) #expand {
     sa := #run code_to_string(a);
     va := #insert a;
 
@@ -126,7 +127,7 @@ assert_ne:: (a: Code, b: Code) #expand {
         va, sa, vb, sb);
 }
 
-assert_lt:: (a: Code, b: Code) #expand {
+assert_lt :: (a: Code, b: Code) #expand {
     sa := #run code_to_string(a);
     va := #insert a;
 
@@ -137,7 +138,7 @@ assert_lt:: (a: Code, b: Code) #expand {
         va, sa, vb, sb);
 }
 
-assert_le:: (a: Code, b: Code) #expand {
+assert_le :: (a: Code, b: Code) #expand {
     sa := #run code_to_string(a);
     va := #insert a;
 
@@ -4658,8 +4659,8 @@ day25_actual :: () {
 
 day25_solve :: (input: string) -> string {
 
-    from_snafu :: (s: string) -> int {
-        result := 0;
+    from_snafu :: (s: string) -> s64 {
+        result : s64 = 0;
 
         base := 1;
         for <digit : cast([]u8)s {
@@ -4675,27 +4676,31 @@ day25_solve :: (input: string) -> string {
         return result;
     }
 
-    to_snafu :: (init_value: int) -> string {
+    to_snafu :: (init_value: s64) -> string {
         result : [..]u8;
 
         base := 1;
+        exp := 0;
         while 2*base + 2*(base/5) < init_value {
             base *= 5;
+            exp += 1;
         }
 
-        value := init_value;
+        value : s64 = init_value;
         while base > 0 {
+            prev_value := value;
+
             substep := 2*base/5;
-            subsubstep := substep/5;
+            subsum := (base - 1)/ 4; // sum of exponential series
 
             if value >= -substep && value <= substep {
                 // do nothing
                 array_add(*result, #char "0");
             }
-            else if value > base + substep + subsubstep {
+            else if value > base + 2*subsum {
                 array_add(*result, #char "2");
                 value -= 2*base;
-            } else if value < -base - substep - subsubstep {
+            } else if value < -base - 2*subsum {
                 array_add(*result, #char "=");
                 value += 2*base;
             } else if value > 0 {
@@ -4707,6 +4712,10 @@ day25_solve :: (input: string) -> string {
             }
             
             base /= 5;
+            exp -= 1;
+            assert(value >= -2*base - subsum);
+            assert(value <= 2*base + subsum);
+            //assert(value >= -2*base - substep - subsubstep - subsubsubstep && value <= 2*base + substep + subsubstep + subsubsubstep);
         }
 
         return cast(string)result;
@@ -4716,6 +4725,7 @@ day25_solve :: (input: string) -> string {
 
     // left: 1==222  right: 1=-0-2
     // 906 == 12111
+    expect_eq(from_snafu(to_snafu(371)),    371);
 
     expect_eq(from_snafu("1"),              1);
     expect_eq(from_snafu("2"),              2);
