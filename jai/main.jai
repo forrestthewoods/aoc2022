@@ -4366,7 +4366,7 @@ day23_solve :: (input: string, is_part1: bool) -> int {
 // --------------------------------------------------------
 day24 :: () {
     day24_test();
-    day24_actual();
+    //day24_actual();
 }
 
 day24_test :: () {
@@ -4456,15 +4456,40 @@ day24_solve :: (input: string) -> int {
         return result;
     }
 
-    assert_eq :: (a: $T, b: $U) #expand {
-        assert(a == b, "expected [%] to equal [%]\n", a, b);
+    assert_eq :: (a: $T, b: $U) {
+        assert(a == b, "(left == right)\n  left: %\n  right: %\n", a, b);
     }
+
+    code_to_string :: (code: Code) -> string #expand {
+        PP       :: #import "Program_Print";
+        Compiler :: #import "Compiler";
+        code_node := Compiler.compiler_get_nodes(code);
+        builder: String_Builder;
+        PP.print_expression(*builder, code_node);
+        return builder_to_string(*builder, allocator=temp);
+    }
+
+    assert_eq:: (a: Code, b: Code) #expand {
+        sa := #run code_to_string(a);
+        va := #insert a;
+
+        sb := #run code_to_string(b);
+        vb := #insert b;
+        assert(va == vb, 
+            "(left == right)\n  left: %  expr: %\n  right: %  expr: %\n",
+            va, sa, vb, sb);
+    }
+
+    foo :: (v: int) -> int { return v + 42; }
+    bar :: (v: int) -> int { return v + 1337; }
+    assert_eq(foo(25), bar(13));
 
     // make sure wrap_blizzard actually works
     test_wrap :: (in: Vec2, expected: Vec2, w: int, h: int) {
          wrapped := wrap_blizzard(in, w, h);
          assert(wrapped == expected, "% wrapped to % but expected %\n", in, wrapped, expected);
     }
+
 
     if false {
         // off the right
