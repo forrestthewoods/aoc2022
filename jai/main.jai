@@ -82,6 +82,59 @@ map :: (array: [] $T, f: (T) -> $R) -> [] R {
     return result;
 }
 
+code_to_string :: (code: Code) -> string #expand {
+    PP       :: #import "Program_Print";
+    Compiler :: #import "Compiler";
+    code_node := Compiler.compiler_get_nodes(code);
+    builder: String_Builder;
+    PP.print_expression(*builder, code_node);
+    return builder_to_string(*builder, allocator=temp);
+}
+
+assert_eq:: (a: Code, b: Code) #expand {
+    sa := #run code_to_string(a);
+    va := #insert a;
+
+    sb := #run code_to_string(b);
+    vb := #insert b;
+    assert(va == vb, 
+        "(left == right)\n  left: %  expr: %\n  right: %  expr: %\n",
+        va, sa, vb, sb);
+}
+
+assert_ne:: (a: Code, b: Code) #expand {
+    sa := #run code_to_string(a);
+    va := #insert a;
+
+    sb := #run code_to_string(b);
+    vb := #insert b;
+    assert(va != vb, 
+        "(left != right)\n  left: %  expr: %\n  right: %  expr: %\n",
+        va, sa, vb, sb);
+}
+
+assert_lt:: (a: Code, b: Code) #expand {
+    sa := #run code_to_string(a);
+    va := #insert a;
+
+    sb := #run code_to_string(b);
+    vb := #insert b;
+    assert(va < vb, 
+        "(left != right)\n  left: %  expr: %\n  right: %  expr: %\n",
+        va, sa, vb, sb);
+}
+
+assert_le:: (a: Code, b: Code) #expand {
+    sa := #run code_to_string(a);
+    va := #insert a;
+
+    sb := #run code_to_string(b);
+    vb := #insert b;
+    assert(va <= vb, 
+        "(left != right)\n  left: %  expr: %\n  right: %  expr: %\n",
+        va, sa, vb, sb);
+}
+
 rem :: (a: s64, b: s64) -> s64 {
     assert(b > 0);
 
@@ -4366,15 +4419,18 @@ day23_solve :: (input: string, is_part1: bool) -> int {
 // --------------------------------------------------------
 day24 :: () {
     day24_test();
-    //day24_actual();
+    day24_actual();
 }
 
 day24_test :: () {
     input, success := read_entire_file("data/day24_example.txt");
     assert(success);
 
-    part1 := day24_solve(input);
+    part1, part2 := day24_solve(input);
     print("(test) day24 part1: %\n", part1);
+    print("(test) day24 part2: %\n", part2);
+    assert_eq(part1, 18);
+    assert_eq(part2, 54);
 
     // part2 := day24_solve(input);
     // print("(test) day24 part2: %\n", part2);
@@ -4384,17 +4440,13 @@ day24_actual :: () {
     input, success := read_entire_file("data/day24.txt");
     assert(success);
 
-    part1 := day24_solve(input);
+    part1, part2 := day24_solve(input);
     print("day24 part1: %\n", part1);
-    assert(part1 == 292);
-    //assert(part1 == 4049);
-
-    // part2 := day24_solve(input);
-    // print("day24 part2: %\n", part2);
-    // assert(part2 == 1021);
+    print("day24 part2: %\n", part2);
+    assert_eq(part1, 292);
 }
 
-day24_solve :: (input: string) -> int {
+day24_solve :: (input: string) -> int, int {
     elf_dirs :: Vec2.[
         .{ 0,  0},
         .{ 0,  1},
@@ -4420,8 +4472,9 @@ day24_solve :: (input: string) -> int {
 
     start_col := find_index_from_left(lines[0], #char ".");
     goal_col := find_index_from_left(lines[lines.count-1], #char ".");
-    goal_pos := Vec2.{goal_col, board_height - 1};
-
+    start_pos := Vec2.{start_col, 0};
+    end_pos := Vec2.{goal_col, board_height - 1};
+    end_start_dist := manhatten_length(end_pos - start_pos);
 
     blizzards : [4][..]Vec2;
     for row, row_idx: lines {
@@ -4441,11 +4494,11 @@ day24_solve :: (input: string) -> int {
     visited : Table(d23_SearchState, int, get_hash_d23_search_state);
     blizzard_map : Table(Vec2, int, get_hash);
 
-    start_pos := Vec2.{start_col, 0};
     initial_state := d23_SearchState.{
-            0, 
-            manhatten_length(goal_pos - Vec2.{start_col, 0}),
-            start_pos};
+            minute = 0, 
+            stage = 0,
+            heuristic = 3*end_start_dist,
+            elf_pos = start_pos};
 
         
     array_add(*search_states, initial_state);
@@ -4456,79 +4509,17 @@ day24_solve :: (input: string) -> int {
         return result;
     }
 
-    assert_eq :: (a: $T, b: $U) {
-        assert(a == b, "(left == right)\n  left: %\n  right: %\n", a, b);
-    }
-
-    code_to_string :: (code: Code) -> string #expand {
-        PP       :: #import "Program_Print";
-        Compiler :: #import "Compiler";
-        code_node := Compiler.compiler_get_nodes(code);
-        builder: String_Builder;
-        PP.print_expression(*builder, code_node);
-        return builder_to_string(*builder, allocator=temp);
-    }
-
-    assert_eq:: (a: Code, b: Code) #expand {
-        sa := #run code_to_string(a);
-        va := #insert a;
-
-        sb := #run code_to_string(b);
-        vb := #insert b;
-        assert(va == vb, 
-            "(left == right)\n  left: %  expr: %\n  right: %  expr: %\n",
-            va, sa, vb, sb);
-    }
-
-    foo :: (v: int) -> int { return v + 42; }
-    bar :: (v: int) -> int { return v + 1337; }
-    assert_eq(foo(25), bar(13));
-
-    // make sure wrap_blizzard actually works
-    test_wrap :: (in: Vec2, expected: Vec2, w: int, h: int) {
-         wrapped := wrap_blizzard(in, w, h);
-         assert(wrapped == expected, "% wrapped to % but expected %\n", in, wrapped, expected);
-    }
-
-
-    if false {
-        // off the right
-        test_wrap(Vec2.{5,0} + Vec2.{1,0}, Vec2.{0,0}, inner_width, inner_height);
-        test_wrap(Vec2.{5,0} + Vec2.{2,0}, Vec2.{1,0}, inner_width, inner_height);
-        test_wrap(Vec2.{5,0} + Vec2.{3,0}, Vec2.{2,0}, inner_width, inner_height);
-        test_wrap(Vec2.{5,0} + Vec2.{4,0}, Vec2.{3,0}, inner_width, inner_height);
-        test_wrap(Vec2.{5,0} + Vec2.{5,0}, Vec2.{4,0}, inner_width, inner_height);
-        test_wrap(Vec2.{5,0} + Vec2.{6,0}, Vec2.{5,0}, inner_width, inner_height);
-        test_wrap(Vec2.{5,0} + Vec2.{7,0}, Vec2.{0,0}, inner_width, inner_height);
-        test_wrap(Vec2.{5,0} + Vec2.{13,0}, Vec2.{0,0}, inner_width, inner_height);
-
-        // off the left
-        test_wrap(Vec2.{0,0} + Vec2.{-1,0}, Vec2.{5,0}, inner_width, inner_height);
-        test_wrap(Vec2.{0,0} + Vec2.{-2,0}, Vec2.{4,0}, inner_width, inner_height);
-        test_wrap(Vec2.{0,0} + Vec2.{-3,0}, Vec2.{3,0}, inner_width, inner_height);
-        test_wrap(Vec2.{0,0} + Vec2.{-4,0}, Vec2.{2,0}, inner_width, inner_height);
-        test_wrap(Vec2.{0,0} + Vec2.{-5,0}, Vec2.{1,0}, inner_width, inner_height);
-        test_wrap(Vec2.{0,0} + Vec2.{-6,0}, Vec2.{0,0}, inner_width, inner_height);
-        test_wrap(Vec2.{0,0} + Vec2.{-7,0}, Vec2.{5,0}, inner_width, inner_height);
-    }
-
-
-    // test_wrap(Vec2.{3,1},                 Vec2.{3, 1}, inner_width, inner_height);
-    // test_wrap(Vec2.{3,1} + Vec2.{0,-1},   Vec2.{3, board_height - 1}, inner_width, inner_height);
-    // test_wrap(Vec2.{3,1} + Vec2.{0,-2},   Vec2.{3, board_height - 2}, inner_width, inner_height);
-    // test_wrap(Vec2.{3,1} + Vec2.{0,-4},   Vec2.{3, 0}, inner_width, inner_height);
-    // test_wrap(Vec2.{3,1} + Vec2.{0,-5},   Vec2.{3, board_height - 1}, inner_width, inner_height);
-    //test_wrap(Vec2.{0,3},   Vec2.{board_width-1, 3},    inner_width, inner_height);
-
-
     // simulate - BFS
-    part1 := -1;
+    part1 := 100000;
+    part2 := -1;
     done := false;
     while !done {
         // reset scratch data
         table_reset(*blizzard_map);
 
         ss := heap_pop(*search_states, d23_ss_cmp);
+
+        cur_goal := ifx ss.stage == 1 then start_pos else end_pos;
 
         // increment minute to simulate
         ss.minute += 1;
@@ -4555,24 +4546,43 @@ day24_solve :: (input: string) -> int {
         for offset : elf_dirs {
             maybe_pos := ss.elf_pos + offset;
 
+            new_ss : d23_SearchState = ss;
+
             // found the goal!
-            if maybe_pos == goal_pos {
-                part1 = ss.minute;
-                done = true;
-                break;
+            if maybe_pos == cur_goal {
+                if ss.stage == 0 {
+                    part1 = min(part1, ss.minute);
+                    new_ss.stage = 1;
+                    break;
+                }
+                else if ss.stage == 1 {
+                    new_ss.stage = 2;
+                } else {
+                    part2 = ss.minute;
+                    done = true;
+                    break;
+                }
             }
 
             // don't move into walls
-            if maybe_pos != start_pos && (maybe_pos.x <= 0 || maybe_pos.y <= 0 || maybe_pos.x >= board_width - 1 || maybe_pos.y >= board_height - 1) continue;
+            if maybe_pos != start_pos && maybe_pos != end_pos && (maybe_pos.x <= 0 || maybe_pos.y <= 0 || maybe_pos.x >= board_width - 1 || maybe_pos.y >= board_height - 1) continue;
 
             // don't move into blizzards
             if table_contains(*blizzard_map, maybe_pos) continue;
 
             // create new search ss
-            new_ss : d23_SearchState;
-            new_ss.minute = ss.minute;
-            new_ss.heuristic = new_ss.minute + manhatten_length(goal_pos - maybe_pos);
             new_ss.elf_pos = maybe_pos;
+            
+            // compute heuristic based on stage
+            new_ss.heuristic = new_ss.minute;
+            if new_ss.stage == 0 new_ss.heuristic += manhatten_length(end_pos - maybe_pos) + 2*end_start_dist;
+            else if new_ss.stage == 1 new_ss.heuristic += manhatten_length(start_pos - maybe_pos) + end_start_dist;
+            else new_ss.heuristic += manhatten_length(end_pos - maybe_pos);
+
+            // heuristic shouldn't change dramatically
+            // +1 if we waited
+            // +2 if we backtracked
+            assert(new_ss.heuristic <= ss.heuristic + 2);
 
             // don't revisit states
             if table_contains(*visited, new_ss) continue;
@@ -4583,24 +4593,26 @@ day24_solve :: (input: string) -> int {
         }
     }
 
-    // 250 - too low
-    return part1;
+    return part1, part2;
 }
 
 d23_SearchState :: struct {
     minute: int;
+    stage: int;
     heuristic : int;
     elf_pos : Vec2;
 }
 d23_ss_cmp :: (a: d23_SearchState, b: d23_SearchState) -> bool { return a.heuristic < b.heuristic; }
 operator == :: (a: d23_SearchState, b: d23_SearchState) -> bool {
     return a.minute == b.minute 
+        && a.stage == b.stage
         && a.heuristic == b.heuristic
         && a.elf_pos == b.elf_pos;
 }
 get_hash_d23_search_state :: (v: d23_SearchState) -> u32 {
     Hash :: #import "Hash";
     result : u32 = Hash.get_hash(v.minute);
+    result = hash_combine(result, Hash.get_hash(v.stage));
     result = hash_combine(result, Hash.get_hash(v.heuristic));
     result = hash_combine(result, get_hash(v.elf_pos));
     return result;
