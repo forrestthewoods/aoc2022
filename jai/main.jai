@@ -4655,6 +4655,7 @@ day25_actual :: () {
 
     part1 := day25_solve(input);
     print("day25 part1: %\n", part1);
+    expect_eq(part1, 2-2--02=1---1200=0-1);
 }
 
 day25_solve :: (input: string) -> string {
@@ -4681,7 +4682,7 @@ day25_solve :: (input: string) -> string {
 
         base := 1;
         exp := 0;
-        while 2*base + 2*(base/5) < init_value {
+        while 2*base + ((base-1)/4) < init_value {
             base *= 5;
             exp += 1;
         }
@@ -4693,7 +4694,7 @@ day25_solve :: (input: string) -> string {
             substep := 2*base/5;
             subsum := (base - 1)/ 4; // sum of exponential series
 
-            if value >= -substep && value <= substep {
+            if value >= -2*subsum && value <= 2*subsum {
                 // do nothing
                 array_add(*result, #char "0");
             }
@@ -4713,8 +4714,8 @@ day25_solve :: (input: string) -> string {
             
             base /= 5;
             exp -= 1;
-            assert(value >= -2*base - subsum);
-            assert(value <= 2*base + subsum);
+            //assert(value >= -2*base - subsum);
+            //assert(value <= 2*base + subsum);
             //assert(value >= -2*base - substep - subsubstep - subsubsubstep && value <= 2*base + substep + subsubstep + subsubsubstep);
         }
 
