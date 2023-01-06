@@ -4655,7 +4655,7 @@ day25_actual :: () {
 
     part1 := day25_solve(input);
     print("day25 part1: %\n", part1);
-    expect_eq(part1, 2-2--02=1---1200=0-1);
+    expect_eq(part1, "2-2--02=1---1200=0-1");
 }
 
 day25_solve :: (input: string) -> string {
